@@ -8377,6 +8377,21 @@ let
     buildInputs = [ TestPod ];
   };
 
+  findimagedupes = buildPerlPackage {
+    pname = "findimagedupes";
+    version = "2.19.1";
+    src = fetchurl {
+      url = "https://github.com/jhnc/findimagedupes/archive/2.19.1.tar.gz";
+      sha256 = "aab5cd4f31d68db6b6e42f8cd6f9bf1441ed02872861e95f6008e0e358c70ac0";
+    };
+    meta = with lib; {
+      homepage = "http://www.jhnc.org/findimagedupes/";
+      description = "Finds visually similar or duplicate images";
+      license = licenses.gpl3;
+      maintainers = with maintainers; [ stunkymonkey ] ;
+    };
+  };
+
   FindLib = buildPerlPackage {
     pname = "Find-Lib";
     version = "1.04";
