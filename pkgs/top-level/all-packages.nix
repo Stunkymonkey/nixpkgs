@@ -27494,6 +27494,7 @@ in
     impatience = callPackage ../desktops/gnome-3/extensions/impatience { };
     material-shell = callPackage ../desktops/gnome-3/extensions/material-shell { };
     mpris-indicator-button = callPackage ../desktops/gnome-3/extensions/mpris-indicator-button { };
+    nautilus-open-any-terminal = callPackage ../desktops/gnome-3/extensions/nautilus-open-any-terminal { };
     night-theme-switcher = callPackage ../desktops/gnome-3/extensions/night-theme-switcher { };
     no-title-bar = callPackage ../desktops/gnome-3/extensions/no-title-bar { };
     noannoyance = callPackage ../desktops/gnome-3/extensions/noannoyance { };
