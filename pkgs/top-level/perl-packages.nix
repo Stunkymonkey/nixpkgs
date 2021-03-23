@@ -8477,6 +8477,8 @@ let
     buildInputs = [ TestPod ];
   };
 
+  findimagedupes = callPackage ../development/perl-modules/findimagedupes { };
+
   FindLib = buildPerlPackage {
     pname = "Find-Lib";
     version = "1.04";
@@ -16969,8 +16971,8 @@ let
     };
   };
 
-  PerlMagick = buildPerlPackage rec {
-    pname = "PerlMagick";
+  PerlIMagick = buildPerlPackage rec {
+    pname = "PerlIMagick";
     version = "7.0.10";
     src = fetchurl {
       url = "mirror://cpan/authors/id/J/JC/JCRISTY/PerlMagick-${version}.tar.gz";
@@ -16985,6 +16987,31 @@ let
         # See: https://github.com/ImageMagick/ImageMagick/issues/3402#issuecomment-801195538
         substituteInPlace Makefile.PL \
           --replace 'MAGICKCORE_HDRI_ENABLE=0' 'MAGICKCORE_HDRI_ENABLE=1'
+      '';
+  };
+
+  PerlGMagick = buildPerlPackage {
+    pname = "PerlGMagick";
+    version = "6.89-1";
+    unpackPhase = "true";
+    buildInputs = [ pkgs.graphicsmagick ];
+    preConfigure =
+      ''
+        # move is not allowed, so copy instead
+        cp -r  ${pkgs.graphicsmagick.dev}/PerlMagick/* .
+        # by far the ugliest part
+        chmod 744 demo
+        chmod -R 744 t
+
+        sed -i -e "s|my \$magick_CPPFLAGS='|my \$magick_CPPFLAGS='-I${pkgs.graphicsmagick.dev}/include/GraphicsMagick |" Makefile.PL
+
+        echo "########"
+        ls ${pkgs.graphicsmagick.dev}/include/GraphicsMagick/magick
+
+        # things from arch-linux
+        #sed -i -e "s:'LDDLFLAGS'  => \"\(.*\)\":'LDDLFLAGS'  => \"-L$dev/lib \1\":" Makefile.PL
+        #perl Makefile.PL INSTALLDIRS=vendor PREFIX=/usr DESTDIR="$out"
+        #sed -i -e "s/LDLOADLIBS =/LDLOADLIBS = -lGraphicsMagick/" Makefile
       '';
   };
 
@@ -24151,6 +24178,7 @@ let
   NetSMTP = self.libnet;
   OLEStorageLight = self.OLEStorage_Lite; # For backwards compatibility. Please use OLEStorage_Lite instead.
   ParseCPANMeta = self.CPANMeta;
+  PerlMagick = self.PerlIMagick;
   TestMoose = self.Moose;
   TestMore = self.TestSimple;
   TestTester = self.TestSimple;

@@ -1,6 +1,22 @@
-{ lib, stdenv, fetchurl, bzip2, freetype, graphviz, ghostscript
-, libjpeg, libpng, libtiff, libxml2, zlib, libtool, xz, libX11
-, libwebp, quantumdepth ? 8, fixDarwinDylibNames }:
+{ lib
+, stdenv
+, fetchurl
+, bzip2
+, freetype
+, graphviz
+, ghostscript
+, libjpeg
+, libpng
+, libtiff
+, libxml2
+, zlib
+, libtool
+, xz
+, libX11
+, libwebp
+, quantumdepth ? 8
+, fixDarwinDylibNames
+}:
 
 stdenv.mkDerivation rec {
   pname = "graphicsmagick";
@@ -15,16 +31,34 @@ stdenv.mkDerivation rec {
     ./disable-popen.patch
   ];
 
+  outputs = [ "out" "dev" ];
+
+  enableParallelBuilding = true;
+
   configureFlags = [
     "--enable-shared"
     "--with-frozenpaths"
+    "--with-modules"
+    "--with-perl"
     "--with-quantum-depth=${toString quantumdepth}"
     "--with-gslib=yes"
+    "--with-threads"
   ];
 
   buildInputs =
-    [ bzip2 freetype ghostscript graphviz libjpeg libpng libtiff libX11 libxml2
-      zlib libtool libwebp
+    [
+      bzip2
+      freetype
+      ghostscript
+      graphviz
+      libjpeg
+      libpng
+      libtiff
+      libX11
+      libxml2
+      zlib
+      libtool
+      libwebp
     ];
 
   nativeBuildInputs = [ xz ]
@@ -32,6 +66,15 @@ stdenv.mkDerivation rec {
 
   postInstall = ''
     sed -i 's/-ltiff.*'\'/\'/ $out/bin/*
+
+    moveToOutput "PerlMagick" "$dev" # why not doing anything?
+    mv "PerlMagick" "$dev"
+    #moveToOutput "magick" "$dev" # why not doing anything?
+    #mv "magick/*" "$dev/include/GraphicsMagick/"
+
+    moveToOutput "bin/*-config" "$dev"
+    moveToOutput "lib/libGraphicsMagick.so.*" "$dev" # includes configure params
+    moveToOutput "lib/GraphicsMagick-*/config*" "$dev" # includes configure params
   '';
 
   meta = {
