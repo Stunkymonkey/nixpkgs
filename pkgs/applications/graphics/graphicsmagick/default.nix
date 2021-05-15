@@ -1,21 +1,23 @@
-{ lib
-, stdenv
-, fetchurl
+{
+  lib
 , bzip2
+, fetchurl
+, fixDarwinDylibNames
 , freetype
-, graphviz
 , ghostscript
+, graphviz
+, libX11
 , libjpeg
 , libpng
 , libtiff
-, libxml2
-, zlib
 , libtool
-, xz
-, libX11
 , libwebp
+, libxml2
+, perl
 , quantumdepth ? 8
-, fixDarwinDylibNames
+, stdenv
+, xz
+, zlib
 }:
 
 stdenv.mkDerivation rec {
@@ -39,11 +41,12 @@ stdenv.mkDerivation rec {
     "--enable-shared"
     "--with-frozenpaths"
     "--with-modules"
-    "--with-perl"
+    "--with-perl=${perl}/bin/perl"
     "--with-quantum-depth=${toString quantumdepth}"
-    "--with-gslib=yes"
-    "--with-threads"
   ];
+
+  nativeBuildInputs = [ xz ]
+    ++ lib.optional stdenv.hostPlatform.isDarwin fixDarwinDylibNames;
 
   buildInputs =
     [
@@ -51,18 +54,24 @@ stdenv.mkDerivation rec {
       freetype
       ghostscript
       graphviz
+      libX11
       libjpeg
       libpng
       libtiff
-      libX11
-      libxml2
-      zlib
       libtool
       libwebp
+      libxml2
+      perl
+      zlib
     ];
 
-  nativeBuildInputs = [ xz ]
-    ++ lib.optional stdenv.hostPlatform.isDarwin fixDarwinDylibNames;
+  postBuild = ''
+    # PerMagick needs to be built separately.
+    cd PerlMagick
+    # However, it does not find the GraphicsMagick library (-lGraphicsMagick).
+    ${perl}/bin/perl Makefile.PL
+    make
+  '';
 
   postInstall = ''
     sed -i 's/-ltiff.*'\'/\'/ $out/bin/*
@@ -82,5 +91,6 @@ stdenv.mkDerivation rec {
     description = "Swiss army knife of image processing";
     license = lib.licenses.mit;
     platforms = lib.platforms.all;
+    maintainers = with maintainers; [ stunkymonkey, dschrempf ];
   };
 }
