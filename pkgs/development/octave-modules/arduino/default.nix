@@ -2,7 +2,7 @@
 , lib
 , fetchurl
 , instrument-control
-, arduino-core
+, arduino-unwrapped
 }:
 
 buildOctavePackage rec {
@@ -19,7 +19,7 @@ buildOctavePackage rec {
   ];
 
   propagatedBuildInputs = [
-    arduino-core
+    arduino-unwrapped
   ];
 
   meta = with lib; {

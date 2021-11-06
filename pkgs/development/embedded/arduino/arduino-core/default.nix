@@ -15,6 +15,7 @@ let
 
   self = {
     arduino-chrootenv = callPackage ./chrootenv.nix { inherit pname version src withGui withTeensyduino gtk3; };
+    arduino-unwrapped = callPackage ./core.nix { inherit pname version src withGui withTeensyduino gtk3; };
   };
 
 in
