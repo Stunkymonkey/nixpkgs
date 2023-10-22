@@ -42134,4 +42134,6 @@ with pkgs;
   code-maat = callPackage ../development/tools/code-maat {};
 
   mdhtml = callPackage ../tools/text/mdhtml { };
+
+  docuseal = callPackage ../by-name/do/docuseal/package.nix { };
 }
