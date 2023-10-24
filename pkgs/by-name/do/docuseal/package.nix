@@ -35,7 +35,6 @@ let
   web = callPackage ./web.nix { inherit version src meta rubyEnv; };
 in
 stdenv.mkDerivation rec {
-
   pname = "docuseal";
   inherit version src meta;
 
@@ -55,6 +54,12 @@ stdenv.mkDerivation rec {
     bundle exec bootsnap precompile --gemfile app/ lib/
 
     runHook postInstall
+  '';
+
+  # create empty folder which are needed, but never used
+  postInstall = ''
+    chmod +w $out/tmp/
+    mkdir -p $out/tmp/{cache,sockets}
   '';
 
   passthru = {
