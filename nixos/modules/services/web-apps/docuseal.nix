@@ -10,21 +10,11 @@ let
 
     PORT = toString (cfg.port);
     HOST = cfg.host;
-  } // lib.optionalAttrs (cfg.database_url != null) {
-    DATABASE_URL = cfg.database_url;
   } // cfg.extraConfig;
 in
 {
   options.services.docuseal = {
     enable = lib.mkEnableOption (lib.mdDoc "DocuSeal, open source document signing");
-
-    database_url = lib.mkOption {
-      type = with lib.types; nullOr str;
-      description = lib.mdDoc ''
-        defaults (`null`) to sqlite. Supports `"postgres:"`/`"mysql:"`
-      '';
-      default = null;
-    };
 
     secretKeyBaseFile = lib.mkOption {
       description = lib.mdDoc ''
@@ -64,6 +54,7 @@ in
       default = [ ];
       description = lib.mdDoc ''
         Extra environment files to pass to DocuSeal services. Useful for passing down environmental secrets.
+        e.g. DATABASE_URL
       '';
       example = [ "/etc/docuseal/s3config.env" ];
     };
