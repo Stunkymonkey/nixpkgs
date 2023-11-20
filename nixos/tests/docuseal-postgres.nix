@@ -7,19 +7,17 @@ import ./make-test-python.nix ({ lib, pkgs, ... }: {
       enable = true;
       port = 80;
       secretKeyBaseFile = pkgs.writeText "secret" "23bec595a1658d136d532af1365b40024b662c0862e9cdf14fd22c0afaeb0dd6322b114fa35bd82e564bae44a896b5abef3a66afd61e1382b8ebd579e2c5c17f";
-      database_url = "postgresql://docuseal:db-secret@127.0.0.1:5432/docuseal";
+      extraConfig.DATABASEURL = "postgresql://docuseal:db-secret@127.0.0.1:5432/docuseal";
     };
     services.postgresql = {
       # TODO fix for postgresql_15
-      package = pkgs.postgresql_14;
+      package = pkgs.postgresql;
       enable = true;
       ensureDatabases = [ "docuseal" ];
       ensureUsers = [
         {
           name = "docuseal";
-          ensurePermissions = {
-            "DATABASE \"docuseal\"" = "ALL PRIVILEGES";
-          };
+          ensureDBOwnership = true;
         }
       ];
       initialScript = pkgs.writeText "postgresql-password" ''
