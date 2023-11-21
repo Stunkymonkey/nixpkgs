@@ -10,7 +10,6 @@ import ./make-test-python.nix ({ lib, pkgs, ... }: {
       extraConfig.DATABASEURL = "postgresql://docuseal:db-secret@127.0.0.1:5432/docuseal";
     };
     services.postgresql = {
-      # TODO fix for postgresql_15
       package = pkgs.postgresql;
       enable = true;
       ensureDatabases = [ "docuseal" ];
