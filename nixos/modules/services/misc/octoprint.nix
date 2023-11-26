@@ -21,6 +21,7 @@ let
 
   package = pkgs.octoprint;
 
+  subStateDir = "${cfg.stateDir}/octoprint";
 in
 {
   ##### interface
@@ -106,6 +107,7 @@ in
 
     systemd.tmpfiles.rules = [
       "d '${cfg.stateDir}' - ${cfg.user} ${cfg.group} - -"
+      "d '${subStateDir}' - ${cfg.user} ${cfg.group} - -"
       # this will allow octoprint access to raspberry specific hardware to check for throttling
       # read-only will not work: "VCHI initialization failed" error
       "a /dev/vchiq - - - - u:octoprint:rw"
@@ -119,16 +121,19 @@ in
 
       preStart = ''
         if [ -e "${cfg.stateDir}/config.yaml" ]; then
-          ${pkgs.yaml-merge}/bin/yaml-merge "${cfg.stateDir}/config.yaml" "${cfgUpdate}" > "${cfg.stateDir}/config.yaml.tmp"
-          mv "${cfg.stateDir}/config.yaml.tmp" "${cfg.stateDir}/config.yaml"
+          find '${cfg.stateDir}/*' -prune ! -name octoprint -exec mv {} '${subStateDir}' +
+        fi
+        if [ -e "${subStateDir}/config.yaml" ]; then
+          ${pkgs.yaml-merge}/bin/yaml-merge "${subStateDir}/config.yaml" "${cfgUpdate}" > "${subStateDir}/config.yaml.tmp"
+          mv "${subStateDir}/config.yaml.tmp" "${subStateDir}/config.yaml"
         else
-          cp "${cfgUpdate}" "${cfg.stateDir}/config.yaml"
-          chmod 600 "${cfg.stateDir}/config.yaml"
+          cp "${cfgUpdate}" "${subStateDir}/config.yaml"
+          chmod 600 "${subStateDir}/config.yaml"
         fi
       '';
 
       serviceConfig = {
-        ExecStart = "${pluginsEnv}/bin/octoprint serve -b ${cfg.stateDir}";
+        ExecStart = "${pluginsEnv}/bin/octoprint serve -b ${subStateDir}";
         User = cfg.user;
         Group = cfg.group;
         SupplementaryGroups = [
