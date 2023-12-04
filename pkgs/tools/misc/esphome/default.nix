@@ -2,6 +2,7 @@
 , callPackage
 , python3Packages
 , fetchFromGitHub
+, fetchpatch
 , platformio
 , esptool_3
 , git
@@ -25,6 +26,14 @@ python.pkgs.buildPythonApplication rec {
     rev = "refs/tags/${version}";
     hash = "sha256-9LqZlhCt+7p6tnSHFhbnUzkEOJQDsg/Pd/hgd/Il0ZQ=";
   };
+
+  patches = [
+    # patch pillow to version 10.1.0
+    (fetchpatch {
+      url = "https://patch-diff.githubusercontent.com/raw/esphome/esphome/pull/5815.patch";
+      hash = "sha256-MaOsJ0EmG3himVrYL08SH8C2CoiF6S8cReyEKCx5PuA=";
+    })
+  ];
 
   postPatch = ''
     # remove all version pinning (E.g tornado==5.1.1 -> tornado)
