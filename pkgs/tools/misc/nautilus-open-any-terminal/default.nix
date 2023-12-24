@@ -19,8 +19,8 @@ python3.pkgs.buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "Stunkymonkey";
     repo = pname;
-    rev = "94b480ba12a05f59b13ce8a2326f1e0f6101ba49";
-    sha256 = "sha256-ghZpXsYQiJFHXAEsStfnyglS4c/RWablBgNwD+6HhAM=";
+    rev = "5d752be35d996453cbe78d4f8358f34b02d1848d";
+    sha256 = "sha256-L8Tjr6bB8tRe0UmW+mNiIFO3QXsfsC0NrNsvch0Fgac=";
   };
 
   patches = [ ./hardcode-gsettings.patch ];
