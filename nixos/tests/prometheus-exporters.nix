@@ -356,6 +356,29 @@ let
       '';
     };
 
+    exportarr-sonarr = let apiKeyFile = pkgs.writeText "dummy-api-key" "eccff6a992bc2e4b88e46d064b26bb4e"; in {
+      nodeName = "exportarr_sonarr";
+      exporterConfig = {
+        enable = true;
+        url = "http://127.0.0.1:8989";
+        inherit apiKeyFile;
+      };
+      metricProvider = {
+        services.sonarr = {
+          enable = true;
+          inherit apiKeyFile;
+        };
+      };
+      exporterTest = ''
+        wait_for_unit("sonarr.service")
+        wait_for_open_port(8989)
+        wait_for_unit("prometheus-exportarr-sonarr-exporter.service")
+        wait_for_file("/var/lib/sonarr/.config/NzbDrone/config.xml")
+        wait_for_open_port(9708)
+        succeed("curl -sSf http://localhost:9708/metrics | grep sonarr_series_total")
+      '';
+    };
+
     fastly = {
       exporterConfig = {
         enable = true;
