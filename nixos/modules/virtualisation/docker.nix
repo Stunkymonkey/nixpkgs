@@ -1,9 +1,5 @@
 # Systemd services for docker.
-
 { config, lib, pkgs, ... }:
-
-with lib;
-
 let
 
   cfg = config.virtualisation.docker;
@@ -17,8 +13,8 @@ in
 
   options.virtualisation.docker = {
     enable =
-      mkOption {
-        type = types.bool;
+      lib.mkOption {
+        type = lib.types.bool;
         default = false;
         description = ''
             This option enables docker, a daemon that manages
@@ -29,8 +25,8 @@ in
       };
 
     listenOptions =
-      mkOption {
-        type = types.listOf types.str;
+      lib.mkOption {
+        type = lib.types.listOf lib.types.str;
         default = ["/run/docker.sock"];
         description = ''
             A list of unix and tcp docker should listen to. The format follows
@@ -39,8 +35,8 @@ in
       };
 
     enableOnBoot =
-      mkOption {
-        type = types.bool;
+      lib.mkOption {
+        type = lib.types.bool;
         default = true;
         description = ''
             When enabled dockerd is started on boot. This is required for
@@ -51,7 +47,7 @@ in
       };
 
     daemon.settings =
-      mkOption {
+      lib.mkOption {
         type = settingsFormat.type;
         default = { };
         example = {
@@ -65,8 +61,8 @@ in
       };
 
     enableNvidia =
-      mkOption {
-        type = types.bool;
+      lib.mkOption {
+        type = lib.types.bool;
         default = false;
         description = ''
           **Deprecated**, please use hardware.nvidia-container-toolkit.enable instead.
@@ -76,8 +72,8 @@ in
       };
 
     liveRestore =
-      mkOption {
-        type = types.bool;
+      lib.mkOption {
+        type = lib.types.bool;
         default = true;
         description = ''
             Allow dockerd to be restarted without affecting running container.
@@ -86,8 +82,8 @@ in
       };
 
     storageDriver =
-      mkOption {
-        type = types.nullOr (types.enum ["aufs" "btrfs" "devicemapper" "overlay" "overlay2" "zfs"]);
+      lib.mkOption {
+        type = lib.types.nullOr (lib.types.enum ["aufs" "btrfs" "devicemapper" "overlay" "overlay2" "zfs"]);
         default = null;
         description = ''
             This option determines which Docker
@@ -106,8 +102,8 @@ in
       };
 
     logDriver =
-      mkOption {
-        type = types.enum ["none" "json-file" "syslog" "journald" "gelf" "fluentd" "awslogs" "splunk" "etwlogs" "gcplogs" "local"];
+      lib.mkOption {
+        type = lib.types.enum ["none" "json-file" "syslog" "journald" "gelf" "fluentd" "awslogs" "splunk" "etwlogs" "gcplogs" "local"];
         default = "journald";
         description = ''
             This option determines which Docker log driver to use.
@@ -115,8 +111,8 @@ in
       };
 
     extraOptions =
-      mkOption {
-        type = types.separatedString " ";
+      lib.mkOption {
+        type = lib.types.separatedString " ";
         default = "";
         description = ''
             The extra command-line options to pass to
@@ -125,8 +121,8 @@ in
       };
 
     autoPrune = {
-      enable = mkOption {
-        type = types.bool;
+      enable = lib.mkOption {
+        type = lib.types.bool;
         default = false;
         description = ''
           Whether to periodically prune Docker resources. If enabled, a
@@ -135,8 +131,8 @@ in
         '';
       };
 
-      flags = mkOption {
-        type = types.listOf types.str;
+      flags = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
         default = [];
         example = [ "--all" ];
         description = ''
@@ -144,9 +140,9 @@ in
         '';
       };
 
-      dates = mkOption {
+      dates = lib.mkOption {
         default = "weekly";
-        type = types.str;
+        type = lib.types.str;
         description = ''
           Specification (in the format described by
           {manpage}`systemd.time(7)`) of the time at
@@ -155,12 +151,12 @@ in
       };
     };
 
-    package = mkPackageOption pkgs "docker" { };
+    package = lib.mkPackageOption pkgs "docker" { };
 
-    extraPackages = mkOption {
-      type = types.listOf types.package;
+    extraPackages = lib.mkOption {
+      type = lib.types.listOf lib.types.package;
       default = [ ];
-      example = literalExpression "with pkgs; [ criu ]";
+      example = lib.literalExpression "with pkgs; [ criu ]";
       description = ''
         Extra packages to add to PATH for the docker daemon process.
       '';
@@ -169,14 +165,14 @@ in
 
   ###### implementation
 
-  config = mkIf cfg.enable (mkMerge [{
+  config = lib.mkIf cfg.enable (lib.mkMerge [{
       boot.kernelModules = [ "bridge" "veth" "br_netfilter" "xt_nat" ];
       boot.kernel.sysctl = {
-        "net.ipv4.conf.all.forwarding" = mkOverride 98 true;
-        "net.ipv4.conf.default.forwarding" = mkOverride 98 true;
+        "net.ipv4.conf.all.forwarding" = lib.mkOverride 98 true;
+        "net.ipv4.conf.default.forwarding" = lib.mkOverride 98 true;
       };
       environment.systemPackages = [ cfg.package ]
-        ++ optional cfg.enableNvidia pkgs.nvidia-docker;
+        ++ lib.optional cfg.enableNvidia pkgs.nvidia-docker;
       users.groups.docker.gid = config.ids.gids.docker;
       systemd.packages = [ cfg.package ];
 
@@ -184,14 +180,14 @@ in
       # (https://docs.docker.com/engine/release-notes/25.0/#new). Encourage
       # moving to CDI as opposed to having deprecated runtime
       # wrappers.
-      warnings = lib.optionals (cfg.enableNvidia && (lib.strings.versionAtLeast cfg.package.version "25")) [
+      warnings = lib.optionals (cfg.enableNvidia && (lib.strings.lib.versionAtLeast cfg.package.version "25")) [
         ''
           You have set virtualisation.docker.enableNvidia. This option is deprecated, please set hardware.nvidia-container-toolkit.enable instead.
         ''
       ];
 
       systemd.services.docker = {
-        wantedBy = optional cfg.enableOnBoot "multi-user.target";
+        wantedBy = lib.optional cfg.enableOnBoot "multi-user.target";
         after = [ "network.target" "docker.socket" ];
         requires = [ "docker.socket" ];
         environment = proxy_env;
@@ -210,8 +206,8 @@ in
           ];
         };
 
-        path = [ pkgs.kmod ] ++ optional (cfg.storageDriver == "zfs") pkgs.zfs
-          ++ optional cfg.enableNvidia pkgs.nvidia-docker
+        path = [ pkgs.kmod ] ++ lib.optional (cfg.storageDriver == "zfs") pkgs.zfs
+          ++ lib.optional cfg.enableNvidia pkgs.nvidia-docker
           ++ cfg.extraPackages;
       };
 
@@ -238,7 +234,7 @@ in
           ${cfg.package}/bin/docker system prune -f ${toString cfg.autoPrune.flags}
         '';
 
-        startAt = optional cfg.autoPrune.enable cfg.autoPrune.dates;
+        startAt = lib.optional cfg.autoPrune.enable cfg.autoPrune.dates;
         after = [ "docker.service" ];
         requires = [ "docker.service" ];
       };
@@ -251,10 +247,10 @@ in
       virtualisation.docker.daemon.settings = {
         group = "docker";
         hosts = [ "fd://" ];
-        log-driver = mkDefault cfg.logDriver;
-        storage-driver = mkIf (cfg.storageDriver != null) (mkDefault cfg.storageDriver);
-        live-restore = mkDefault cfg.liveRestore;
-        runtimes = mkIf cfg.enableNvidia {
+        log-driver = lib.mkDefault cfg.logDriver;
+        storage-driver = lib.mkIf (cfg.storageDriver != null) (lib.mkDefault cfg.storageDriver);
+        live-restore = lib.mkDefault cfg.liveRestore;
+        runtimes = lib.mkIf cfg.enableNvidia {
           nvidia = {
             # Use the legacy nvidia-container-runtime wrapper to allow
             # the `--runtime=nvidia` approach to expose
@@ -268,7 +264,7 @@ in
   ]);
 
   imports = [
-    (mkRemovedOptionModule ["virtualisation" "docker" "socketActivation"] "This option was removed and socket activation is now always active")
+    (lib.mkRemovedOptionModule ["virtualisation" "docker" "socketActivation"] "This option was removed and socket activation is now always active")
   ];
 
 }

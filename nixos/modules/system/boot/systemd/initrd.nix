@@ -1,10 +1,7 @@
 { lib, options, config, utils, pkgs, ... }:
-
-with lib;
-
 let
   inherit (utils) systemdUtils escapeSystemdPath;
-  inherit (systemdUtils.lib)
+  inherit (systemdUtils)
     generateUnits
     pathToUnit
     serviceToUnit
@@ -77,9 +74,9 @@ let
     "sysinit.target.wants"
   ];
 
-  enabledUpstreamUnits = filter (n: ! elem n cfg.suppressedUnits) upstreamUnits;
-  enabledUnits = filterAttrs (n: v: ! elem n cfg.suppressedUnits) cfg.units;
-  jobScripts = concatLists (mapAttrsToList (_: unit: unit.jobScripts or []) (filterAttrs (_: v: v.enable) cfg.services));
+  enabledUpstreamUnits = lib.filter (n: ! lib.elem n cfg.suppressedUnits) upstreamUnits;
+  enabledUnits = lib.filterAttrs (n: v: ! lib.elem n cfg.suppressedUnits) cfg.units;
+  jobScripts = lib.concatLists (lib.mapAttrsToList (_: unit: unit.jobScripts or []) (lib.filterAttrs (_: v: v.enable) cfg.services));
 
   stage1Units = generateUnits {
     type = "initrd";
@@ -100,14 +97,14 @@ let
 
   initrdBinEnv = pkgs.buildEnv {
     name = "initrd-bin-env";
-    paths = map getBin cfg.initrdBin;
+    paths = map lib.getBin cfg.initrdBin;
     pathsToLink = ["/bin" "/sbin"];
 
     # Make sure sbin and bin have the same contents, and add extraBin
     postBuild = ''
       find $out/bin -maxdepth 1 -type l -print0 | xargs --null cp --no-dereference --no-clobber -t $out/sbin/
       find $out/sbin -maxdepth 1 -type l -print0 | xargs --null cp --no-dereference --no-clobber -t $out/bin/
-      ${concatStringsSep "\n" (mapAttrsToList (n: v: ''
+      ${lib.concatStringsSep "\n" (lib.mapAttrsToList (n: v: ''
         ln -sf '${v}' $out/bin/'${n}'
         ln -sf '${v}' $out/sbin/'${n}'
       '') cfg.extraBin)}
@@ -124,7 +121,7 @@ let
 
 in {
   options.boot.initrd.systemd = {
-    enable = mkEnableOption "systemd in initrd" // {
+    enable = lib.mkEnableOption "systemd in initrd" // {
       description = ''
         Whether to enable systemd in initrd. The unit options such as
         {option}`boot.initrd.systemd.services` are the same as their
@@ -143,9 +140,9 @@ in {
       '';
     };
 
-    extraConfig = mkOption {
+    extraConfig = lib.mkOption {
       default = "";
-      type = types.lines;
+      type = lib.types.lines;
       example = "DefaultLimitCORE=infinity";
       description = ''
         Extra config options for systemd. See systemd-system.conf(5) man page
@@ -153,8 +150,8 @@ in {
       '';
     };
 
-    managerEnvironment = mkOption {
-      type = with types; attrsOf (nullOr (oneOf [ str path package ]));
+    managerEnvironment = lib.mkOption {
+      type = with lib.types; attrsOf (nullOr (oneOf [ str path package ]));
       default = {};
       example = { SYSTEMD_LOG_LEVEL = "debug"; };
       description = ''
@@ -163,9 +160,9 @@ in {
       '';
     };
 
-    contents = mkOption {
+    contents = lib.mkOption {
       description = "Set of files that have to be linked into the initrd";
-      example = literalExpression ''
+      example = lib.literalExpression ''
         {
           "/etc/machine-id".source = /etc/machine-id;
         }
@@ -174,7 +171,7 @@ in {
       type = utils.systemdUtils.types.initrdContents;
     };
 
-    storePaths = mkOption {
+    storePaths = lib.mkOption {
       description = ''
         Store paths to copy into the initrd as well.
       '';
@@ -182,7 +179,7 @@ in {
       default = [];
     };
 
-    strip = mkOption {
+    strip = lib.mkOption {
       description = ''
         Whether to completely strip executables and libraries copied to the initramfs.
 
@@ -191,29 +188,29 @@ in {
         reference), at the cost of ~1MiB of initramfs size. This puts
         this option firmly in the territory of micro-optimisation.
       '';
-      type = types.bool;
+      type = lib.types.bool;
       default = true;
     };
 
-    extraBin = mkOption {
+    extraBin = lib.mkOption {
       description = ''
         Tools to add to /bin
       '';
-      example = literalExpression ''
+      example = lib.literalExpression ''
         {
           umount = ''${pkgs.util-linux}/bin/umount;
         }
       '';
-      type = types.attrsOf types.path;
+      type = lib.types.attrsOf lib.types.path;
       default = {};
     };
 
-    suppressedStorePaths = mkOption {
+    suppressedStorePaths = lib.mkOption {
       description = ''
         Store paths specified in the storePaths option that
         should not be copied.
       '';
-      type = types.listOf types.singleLineStr;
+      type = lib.types.listOf lib.types.singleLineStr;
       default = [];
     };
 
@@ -230,8 +227,8 @@ in {
       '';
     };
 
-    emergencyAccess = mkOption {
-      type = with types; oneOf [ bool (nullOr (passwdEntry str)) ];
+    emergencyAccess = lib.mkOption {
+      type = with lib.types; oneOf [ bool (nullOr (passwdEntry str)) ];
       description = ''
         Set to true for unauthenticated emergency access, and false or
         null for no emergency access.
@@ -242,26 +239,26 @@ in {
       default = false;
     };
 
-    initrdBin = mkOption {
-      type = types.listOf types.package;
+    initrdBin = lib.mkOption {
+      type = lib.types.listOf lib.types.package;
       default = [];
       description = ''
         Packages to include in /bin for the stage 1 emergency shell.
       '';
     };
 
-    additionalUpstreamUnits = mkOption {
+    additionalUpstreamUnits = lib.mkOption {
       default = [ ];
-      type = types.listOf types.str;
+      type = lib.types.listOf lib.types.str;
       example = [ "debug-shell.service" "systemd-quotacheck.service" ];
       description = ''
         Additional units shipped with systemd that shall be enabled.
       '';
     };
 
-    suppressedUnits = mkOption {
+    suppressedUnits = lib.mkOption {
       default = [ ];
-      type = types.listOf types.str;
+      type = lib.types.listOf lib.types.str;
       example = [ "systemd-backlight@.service" ];
       description = ''
         A list of units to skip when generating system systemd configuration directory. This has
@@ -272,56 +269,56 @@ in {
       '';
     };
 
-    units = mkOption {
+    units = lib.mkOption {
       description = "Definition of systemd units.";
       default = {};
       visible = "shallow";
       type = systemdUtils.types.units;
     };
 
-    packages = mkOption {
+    packages = lib.mkOption {
       default = [];
-      type = types.listOf types.package;
-      example = literalExpression "[ pkgs.systemd-cryptsetup-generator ]";
+      type = lib.types.listOf lib.types.package;
+      example = lib.literalExpression "[ pkgs.systemd-cryptsetup-generator ]";
       description = "Packages providing systemd units and hooks.";
     };
 
-    targets = mkOption {
+    targets = lib.mkOption {
       default = {};
       visible = "shallow";
       type = systemdUtils.types.initrdTargets;
       description = "Definition of systemd target units.";
     };
 
-    services = mkOption {
+    services = lib.mkOption {
       default = {};
       type = systemdUtils.types.initrdServices;
       visible = "shallow";
       description = "Definition of systemd service units.";
     };
 
-    sockets = mkOption {
+    sockets = lib.mkOption {
       default = {};
       type = systemdUtils.types.initrdSockets;
       visible = "shallow";
       description = "Definition of systemd socket units.";
     };
 
-    timers = mkOption {
+    timers = lib.mkOption {
       default = {};
       type = systemdUtils.types.initrdTimers;
       visible = "shallow";
       description = "Definition of systemd timer units.";
     };
 
-    paths = mkOption {
+    paths = lib.mkOption {
       default = {};
       type = systemdUtils.types.initrdPaths;
       visible = "shallow";
       description = "Definition of systemd path units.";
     };
 
-    mounts = mkOption {
+    mounts = lib.mkOption {
       default = [];
       type = systemdUtils.types.initrdMounts;
       visible = "shallow";
@@ -332,7 +329,7 @@ in {
       '';
     };
 
-    automounts = mkOption {
+    automounts = lib.mkOption {
       default = [];
       type = systemdUtils.types.automounts;
       visible = "shallow";
@@ -343,27 +340,27 @@ in {
       '';
     };
 
-    slices = mkOption {
+    slices = lib.mkOption {
       default = {};
       type = systemdUtils.types.slices;
       visible = "shallow";
       description = "Definition of slice configurations.";
     };
 
-    enableTpm2 = mkOption {
+    enableTpm2 = lib.mkOption {
       default = cfg.package.withTpm2Tss;
       defaultText = "boot.initrd.systemd.package.withTpm2Tss";
-      type = types.bool;
+      type = lib.types.bool;
       description = ''
         Whether to enable TPM2 support in the initrd.
       '';
     };
   };
 
-  config = mkIf (config.boot.initrd.enable && cfg.enable) {
+  config = lib.mkIf (config.boot.initrd.enable && cfg.enable) {
     assertions = [
       {
-        assertion = cfg.root == "fstab" -> any (fs: fs.mountPoint == "/") (builtins.attrValues config.fileSystems);
+        assertion = cfg.root == "fstab" -> lib.any (fs: fs.mountPoint == "/") (builtins.attrValues config.fileSystems);
         message = "The ‘fileSystems’ option does not specify your root file system.";
       }
     ] ++ map (name: {
@@ -431,15 +428,15 @@ in {
 
         "/lib".source = "${modulesClosure}/lib";
 
-        "/etc/modules-load.d/nixos.conf".text = concatStringsSep "\n" config.boot.initrd.kernelModules;
+        "/etc/modules-load.d/nixos.conf".text = lib.concatStringsSep "\n" config.boot.initrd.kernelModules;
 
         # We can use either ! or * to lock the root account in the
         # console, but some software like OpenSSH won't even allow you
         # to log in with an SSH key if you use ! so we use * instead
         "/etc/shadow".text = let
           ea = cfg.emergencyAccess;
-          access = ea != null && !(isBool ea && !ea);
-          passwd = if isString ea then ea else "";
+          access = ea != null && !(lib.isBool ea && !ea);
+          passwd = if lib.isString ea then ea else "";
         in
           "root:${if access then passwd else "*"}:::::::";
 
@@ -459,7 +456,7 @@ in {
         # For systemd-journald's _HOSTNAME field; needs to be set early, cannot be backfilled.
         "/etc/hostname".text = config.networking.hostName;
 
-      } // optionalAttrs (config.environment.etc ? "modprobe.d/nixos.conf") {
+      } // lib.optionalAttrs (config.environment.etc ? "modprobe.d/nixos.conf") {
         "/etc/modprobe.d/nixos.conf".source = config.environment.etc."modprobe.d/nixos.conf".source;
       };
 
@@ -495,11 +492,11 @@ in {
 
         # so NSS can look up usernames
         "${pkgs.glibc}/lib/libnss_files.so.2"
-      ] ++ optionals (cfg.package.withCryptsetup && cfg.enableTpm2) [
+      ] ++ lib.optionals (cfg.package.withCryptsetup && cfg.enableTpm2) [
         # tpm2 support
         "${cfg.package}/lib/cryptsetup/libcryptsetup-token-systemd-tpm2.so"
         pkgs.tpm2-tss
-      ] ++ optionals cfg.package.withCryptsetup [
+      ] ++ lib.optionals cfg.package.withCryptsetup [
         # fido2 support
         "${cfg.package}/lib/cryptsetup/libcryptsetup-token-systemd-fido2.so"
         "${pkgs.libfido2}/lib/libfido2.so.1"
@@ -508,18 +505,18 @@ in {
 
       targets.initrd.aliases = ["default.target"];
       units =
-           mapAttrs' (n: v: nameValuePair "${n}.path"    (pathToUnit    v)) cfg.paths
-        // mapAttrs' (n: v: nameValuePair "${n}.service" (serviceToUnit v)) cfg.services
-        // mapAttrs' (n: v: nameValuePair "${n}.slice"   (sliceToUnit   v)) cfg.slices
-        // mapAttrs' (n: v: nameValuePair "${n}.socket"  (socketToUnit  v)) cfg.sockets
-        // mapAttrs' (n: v: nameValuePair "${n}.target"  (targetToUnit  v)) cfg.targets
-        // mapAttrs' (n: v: nameValuePair "${n}.timer"   (timerToUnit   v)) cfg.timers
-        // listToAttrs (map
-                     (v: let n = escapeSystemdPath v.where;
-                         in nameValuePair "${n}.mount" (mountToUnit v)) cfg.mounts)
-        // listToAttrs (map
-                     (v: let n = escapeSystemdPath v.where;
-                         in nameValuePair "${n}.automount" (automountToUnit v)) cfg.automounts);
+           lib.mapAttrs' (n: v: lib.nameValuePair "${n}.path"    (pathToUnit    v)) cfg.paths
+        // lib.mapAttrs' (n: v: lib.nameValuePair "${n}.service" (serviceToUnit v)) cfg.services
+        // lib.mapAttrs' (n: v: lib.nameValuePair "${n}.slice"   (sliceToUnit   v)) cfg.slices
+        // lib.mapAttrs' (n: v: lib.nameValuePair "${n}.socket"  (socketToUnit  v)) cfg.sockets
+        // lib.mapAttrs' (n: v: lib.nameValuePair "${n}.target"  (targetToUnit  v)) cfg.targets
+        // lib.mapAttrs' (n: v: lib.nameValuePair "${n}.timer"   (timerToUnit   v)) cfg.timers
+        // lib.listToAttrs (map
+                     (v: let n = lib.escapeSystemdPath v.where;
+                         in lib.nameValuePair "${n}.mount" (mountToUnit v)) cfg.mounts)
+        // lib.listToAttrs (map
+                     (v: let n = lib.escapeSystemdPath v.where;
+                         in lib.nameValuePair "${n}.automount" (automountToUnit v)) cfg.automounts);
 
 
       services.initrd-nixos-activation = {

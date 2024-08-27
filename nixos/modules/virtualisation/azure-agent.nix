@@ -1,6 +1,4 @@
 { config, lib, pkgs, ... }:
-
-with lib;
 let
 
   cfg = config.virtualisation.azure.agent;
@@ -16,15 +14,15 @@ in
   ###### interface
 
   options.virtualisation.azure.agent = {
-    enable = mkOption {
+    enable = lib.mkOption {
       default = false;
       description = "Whether to enable the Windows Azure Linux Agent.";
     };
-    verboseLogging = mkOption {
+    verboseLogging = lib.mkOption {
       default = false;
       description = "Whether to enable verbose logging.";
     };
-    mountResourceDisk = mkOption {
+    mountResourceDisk = lib.mkOption {
       default = true;
       description = "Whether the agent should format (ext4) and mount the resource disk to /mnt/resource.";
     };
@@ -48,7 +46,7 @@ in
         #
 
         # Enable extension handling. Do not disable this unless you do not need password reset,
-        # backup, monitoring, or any extension handling whatsoever.
+        # backup, monitoring, or lib.any extension handling whatsoever.
         Extensions.Enabled=y
 
         # How often (in seconds) to poll for new goal states

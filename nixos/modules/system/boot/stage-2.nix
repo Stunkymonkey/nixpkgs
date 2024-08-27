@@ -1,7 +1,4 @@
 { config, lib, pkgs, ... }:
-
-with lib;
-
 let
 
   useHostResolvConf = config.networking.resolvconf.enable && config.networking.useHostResolvConf;
@@ -33,17 +30,17 @@ in
 
     boot = {
 
-      postBootCommands = mkOption {
+      postBootCommands = lib.mkOption {
         default = "";
         example = "rm -f /var/log/messages";
-        type = types.lines;
+        type = lib.types.lines;
         description = ''
           Shell commands to be executed just before systemd is started.
         '';
       };
 
-      readOnlyNixStore = mkOption {
-        type = types.bool;
+      readOnlyNixStore = lib.mkOption {
+        type = lib.types.bool;
         default = true;
         description = ''
           If set, NixOS will enforce the immutability of the Nix store
@@ -53,17 +50,17 @@ in
         '';
       };
 
-      systemdExecutable = mkOption {
+      systemdExecutable = lib.mkOption {
         default = "/run/current-system/systemd/lib/systemd/systemd";
-        type = types.str;
+        type = lib.types.str;
         description = ''
           The program to execute to start systemd.
         '';
       };
 
-      extraSystemdUnitPaths = mkOption {
+      extraSystemdUnitPaths = lib.mkOption {
         default = [];
-        type = types.listOf types.str;
+        type = lib.types.listOf lib.types.str;
         description = ''
           Additional paths that get appended to the SYSTEMD_UNIT_PATH environment variable
           that can contain mutable unit files.

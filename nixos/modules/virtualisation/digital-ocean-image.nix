@@ -1,6 +1,4 @@
 { config, lib, pkgs, ... }:
-
-with lib;
 let
   cfg = config.virtualisation.digitalOceanImage;
 in
@@ -9,8 +7,8 @@ in
   imports = [ ./digital-ocean-config.nix ];
 
   options = {
-    virtualisation.digitalOceanImage.diskSize = mkOption {
-      type = with types; either (enum [ "auto" ]) int;
+    virtualisation.digitalOceanImage.diskSize = lib.mkOption {
+      type = with lib.types; either (enum [ "auto" ]) int;
       default = "auto";
       example = 4096;
       description = ''
@@ -18,8 +16,8 @@ in
       '';
     };
 
-    virtualisation.digitalOceanImage.configFile = mkOption {
-      type = with types; nullOr path;
+    virtualisation.digitalOceanImage.configFile = lib.mkOption {
+      type = with lib.types; nullOr path;
       default = null;
       description = ''
         A path to a configuration file which will be placed at
@@ -30,8 +28,8 @@ in
       '';
     };
 
-    virtualisation.digitalOceanImage.compressionMethod = mkOption {
-      type = types.enum [ "gzip" "bzip2" ];
+    virtualisation.digitalOceanImage.compressionMethod = lib.mkOption {
+      type = lib.types.enum [ "gzip" "bzip2" ];
       default = "gzip";
       example = "bzip2";
       description = ''
@@ -65,6 +63,6 @@ in
 
   };
 
-  meta.maintainers = with maintainers; [ arianvp eamsden ];
+  meta.maintainers = with lib.maintainers; [ arianvp eamsden ];
 
 }

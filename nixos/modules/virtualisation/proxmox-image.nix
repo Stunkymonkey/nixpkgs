@@ -1,21 +1,18 @@
 { config, pkgs, lib, ... }:
-
-with lib;
-
 {
   options.proxmox = {
     qemuConf = {
       # essential configs
-      boot = mkOption {
-        type = types.str;
+      boot = lib.mkOption {
+        type = lib.types.str;
         default = "";
         example = "order=scsi0;net0";
         description = ''
           Default boot device. PVE will try all devices in its default order if this value is empty.
         '';
       };
-      scsihw = mkOption {
-        type = types.str;
+      scsihw = lib.mkOption {
+        type = lib.types.str;
         default = "virtio-scsi-single";
         example = "lsi";
         description = ''
@@ -23,8 +20,8 @@ with lib;
           <https://pve.proxmox.com/wiki/Qemu/KVM_Virtual_Machines>
         '';
       };
-      virtio0 = mkOption {
-        type = types.str;
+      virtio0 = lib.mkOption {
+        type = lib.types.str;
         default = "local-lvm:vm-9999-disk-0";
         example = "ceph:vm-123-disk-0";
         description = ''
@@ -32,29 +29,29 @@ with lib;
           This parameter is required by PVE even if it isn't used.
         '';
       };
-      ostype = mkOption {
-        type = types.str;
+      ostype = lib.mkOption {
+        type = lib.types.str;
         default = "l26";
         description = ''
           Guest OS type
         '';
       };
-      cores = mkOption {
-        type = types.ints.positive;
+      cores = lib.mkOption {
+        type = lib.types.ints.positive;
         default = 1;
         description = ''
           Guest core count
         '';
       };
-      memory = mkOption {
-        type = types.ints.positive;
+      memory = lib.mkOption {
+        type = lib.types.ints.positive;
         default = 1024;
         description = ''
           Guest memory in MB
         '';
       };
-      bios = mkOption {
-        type = types.enum [ "seabios" "ovmf" ];
+      bios = lib.mkOption {
+        type = lib.types.enum [ "seabios" "ovmf" ];
         default = "seabios";
         description = ''
           Select BIOS implementation (seabios = Legacy BIOS, ovmf = UEFI).
@@ -62,15 +59,15 @@ with lib;
       };
 
       # optional configs
-      name = mkOption {
-        type = types.str;
+      name = lib.mkOption {
+        type = lib.types.str;
         default = "nixos-${config.system.nixos.label}";
         description = ''
           VM name
         '';
       };
-      additionalSpace = mkOption {
-        type = types.str;
+      additionalSpace = lib.mkOption {
+        type = lib.types.str;
         default = "512M";
         example = "2048M";
         description = ''
@@ -78,8 +75,8 @@ with lib;
           is used.
         '';
       };
-      bootSize = mkOption {
-        type = types.str;
+      bootSize = lib.mkOption {
+        type = lib.types.str;
         default = "256M";
         example = "512M";
         description = ''
@@ -87,8 +84,8 @@ with lib;
           either "efi" or "hybrid".
         '';
       };
-      diskSize = mkOption {
-        type = types.str;
+      diskSize = lib.mkOption {
+        type = lib.types.str;
         default = "auto";
         example = "20480";
         description = ''
@@ -97,16 +94,16 @@ with lib;
           additionalSpace is taken into account.
         '';
       };
-      net0 = mkOption {
-        type = types.commas;
+      net0 = lib.mkOption {
+        type = lib.types.commas;
         default = "virtio=00:00:00:00:00:00,bridge=vmbr0,firewall=1";
         description = ''
           Configuration for the default interface. When restoring from VMA, check the
           "unique" box to ensure device mac is randomized.
         '';
       };
-      serial0 = mkOption {
-        type = types.str;
+      serial0 = lib.mkOption {
+        type = lib.types.str;
         default = "socket";
         example = "/dev/ttyS0";
         description = ''
@@ -114,8 +111,8 @@ with lib;
           or create a unix socket on the host side (use qm terminal to open a terminal connection).
         '';
       };
-      agent = mkOption {
-        type = types.bool;
+      agent = lib.mkOption {
+        type = lib.types.bool;
         apply = x: if x then "1" else "0";
         default = true;
         description = ''
@@ -123,10 +120,10 @@ with lib;
         '';
       };
     };
-    qemuExtraConf = mkOption {
-      type = with types; attrsOf (oneOf [ str int ]);
+    qemuExtraConf = lib.mkOption {
+      type = with lib.types; attrsOf (oneOf [ str int ]);
       default = {};
-      example = literalExpression ''
+      example = lib.literalExpression ''
         {
           cpu = "host";
           onboot = 1;
@@ -136,8 +133,8 @@ with lib;
         Additional options appended to qemu-server.conf
       '';
     };
-    partitionTableType = mkOption {
-      type = types.enum [ "efi" "hybrid" "legacy" "legacy+gpt" ];
+    partitionTableType = lib.mkOption {
+      type = lib.types.enum [ "efi" "hybrid" "legacy" "legacy+gpt" ];
       description = ''
         Partition table type to use. See make-disk-image.nix partitionTableType for details.
         Defaults to 'legacy' for 'proxmox.qemuConf.bios="seabios"' (default), other bios values defaults to 'efi'.
@@ -147,8 +144,8 @@ with lib;
       defaultText = lib.literalExpression ''if config.proxmox.qemuConf.bios == "seabios" then "legacy" else "efi"'';
       example = "hybrid";
     };
-    filenameSuffix = mkOption {
-      type = types.str;
+    filenameSuffix = lib.mkOption {
+      type = lib.types.str;
       default = config.proxmox.qemuConf.name;
       example = "999-nixos_template";
       description = ''
@@ -159,25 +156,25 @@ with lib;
       '';
     };
     cloudInit = {
-      enable = mkOption {
-        type = types.bool;
+      enable = lib.mkOption {
+        type = lib.types.bool;
         default = true;
         description = ''
           Whether the VM should accept cloud init configurations from PVE.
         '';
       };
-      defaultStorage = mkOption {
+      defaultStorage = lib.mkOption {
         default = "local-lvm";
         example = "tank";
-        type = types.str;
+        type = lib.types.str;
         description = ''
           Default storage name for cloud init drive.
         '';
       };
-      device = mkOption {
+      device = lib.mkOption {
         default = "ide2";
         example = "scsi0";
-        type = types.str;
+        type = lib.types.str;
         description = ''
           Bus/device to which the cloud init drive is attached.
         '';
@@ -307,17 +304,17 @@ with lib;
       fsType = "vfat";
     };
 
-    networking = mkIf cfg.cloudInit.enable {
-      hostName = mkForce "";
+    networking = lib.mkIf cfg.cloudInit.enable {
+      hostName = lib.mkForce "";
       useDHCP = false;
     };
 
     services = {
-      cloud-init = mkIf cfg.cloudInit.enable {
+      cloud-init = lib.mkIf cfg.cloudInit.enable {
         enable = true;
         network.enable = true;
       };
-      sshd.enable = mkDefault true;
+      sshd.enable = lib.mkDefault true;
       qemuGuest.enable = true;
     };
 

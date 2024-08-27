@@ -3,11 +3,7 @@
 # that starts a KVM/QEMU VM running the NixOS configuration defined in
 # `config'. By default, the Nix store is shared read-only with the
 # host, which makes (re)building VMs very efficient.
-
 { config, lib, pkgs, options, ... }:
-
-with lib;
-
 let
 
   qemu-common = import ../../lib/qemu-common.nix { inherit lib pkgs; };
@@ -26,25 +22,25 @@ let
 
     options = {
 
-      file = mkOption {
-        type = types.str;
+      file = lib.mkOption {
+        type = lib.types.str;
         description = "The file image used for this drive.";
       };
 
-      driveExtraOpts = mkOption {
-        type = types.attrsOf types.str;
+      driveExtraOpts = lib.mkOption {
+        type = lib.types.attrsOf lib.types.str;
         default = {};
         description = "Extra options passed to drive flag.";
       };
 
-      deviceExtraOpts = mkOption {
-        type = types.attrsOf types.str;
+      deviceExtraOpts = lib.mkOption {
+        type = lib.types.attrsOf lib.types.str;
         default = {};
         description = "Extra options passed to device flag.";
       };
 
-      name = mkOption {
-        type = types.nullOr types.str;
+      name = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
         default = null;
         description = "A name for the drive. Must be unique in the drives list. Not passed to qemu.";
       };
@@ -61,8 +57,8 @@ let
   driveCmdline = idx: { file, driveExtraOpts, deviceExtraOpts, ... }:
     let
       drvId = "drive${toString idx}";
-      mkKeyValue = generators.mkKeyValueDefault {} "=";
-      mkOpts = opts: concatStringsSep "," (mapAttrsToList mkKeyValue opts);
+      mkKeyValue = lib.generators.mkKeyValueDefault {} "=";
+      mkOpts = opts: lib.concatStringsSep "," (lib.mapAttrsToList mkKeyValue opts);
       driveOpts = mkOpts (driveExtraOpts // {
         index = idx;
         id = drvId;
@@ -80,14 +76,14 @@ let
     in
       "-drive ${driveOpts} ${device}";
 
-  drivesCmdLine = drives: concatStringsSep "\\\n    " (imap1 driveCmdline drives);
+  drivesCmdLine = drives: lib.concatStringsSep "\\\n    " (lib.imap1 driveCmdline drives);
 
   # Shell script to start the VM.
   startVM =
     ''
       #! ${hostPkgs.runtimeShell}
 
-      export PATH=${makeBinPath [ hostPkgs.coreutils ]}''${PATH:+:}$PATH
+      export PATH=${lib.makeBinPath [ hostPkgs.coreutils ]}''${PATH:+:}$PATH
 
       set -e
 
@@ -227,7 +223,7 @@ let
       cd "$TMPDIR"
 
       ${lib.optionalString (cfg.emptyDiskImages != []) "idx=0"}
-      ${flip concatMapStrings cfg.emptyDiskImages (size: ''
+      ${lib.flip lib.concatMapStrings cfg.emptyDiskImages (size: ''
         if ! test -e "empty$idx.qcow2"; then
             ${qemu}/bin/qemu-img create -f qcow2 "empty$idx.qcow2" "${toString size}M"
         fi
@@ -240,13 +236,13 @@ let
           -m ${toString config.virtualisation.memorySize} \
           -smp ${toString config.virtualisation.cores} \
           -device virtio-rng-pci \
-          ${concatStringsSep " " config.virtualisation.qemu.networkingOptions} \
-          ${concatStringsSep " \\\n    "
-            (mapAttrsToList
+          ${lib.concatStringsSep " " config.virtualisation.qemu.networkingOptions} \
+          ${lib.concatStringsSep " \\\n    "
+            (lib.mapAttrsToList
               (tag: share: "-virtfs local,path=${share.source},security_model=${share.securityModel},mount_tag=${tag}")
               config.virtualisation.sharedDirectories)} \
           ${drivesCmdLine config.virtualisation.qemu.drives} \
-          ${concatStringsSep " \\\n    " config.virtualisation.qemu.options} \
+          ${lib.concatStringsSep " \\\n    " config.virtualisation.qemu.options} \
           $QEMU_OPTS \
           "$@"
     '';
@@ -297,10 +293,10 @@ in
 {
   imports = [
     ../profiles/qemu-guest.nix
-    (mkRenamedOptionModule [ "virtualisation" "pathsInNixDB" ] [ "virtualisation" "additionalPaths" ])
-    (mkRemovedOptionModule [ "virtualisation" "bootDevice" ] "This option was renamed to `virtualisation.rootDevice`, as it was incorrectly named and misleading. Take the time to review what you want to do and look at the new options like `virtualisation.{bootLoaderDevice, bootPartition}`, open an issue in case of issues.")
-    (mkRemovedOptionModule [ "virtualisation" "efiVars" ] "This option was removed, it is possible to provide a template UEFI variable with `virtualisation.efi.variables` ; if this option is important to you, open an issue")
-    (mkRemovedOptionModule [ "virtualisation" "persistBootDevice" ] "Boot device is always persisted if you use a bootloader through the root disk image ; if this does not work for your usecase, please examine carefully what `virtualisation.{bootDevice, rootDevice, bootPartition}` options offer you and open an issue explaining your need.`")
+    (lib.mkRenamedOptionModule [ "virtualisation" "pathsInNixDB" ] [ "virtualisation" "additionalPaths" ])
+    (lib.mkRemovedOptionModule [ "virtualisation" "bootDevice" ] "This option was renamed to `virtualisation.rootDevice`, as it was incorrectly named and misleading. Take the time to review what you want to do and look at the new options like `virtualisation.{bootLoaderDevice, bootPartition}`, open an issue in case of issues.")
+    (lib.mkRemovedOptionModule [ "virtualisation" "efiVars" ] "This option was removed, it is possible to provide a template UEFI variable with `virtualisation.efi.variables` ; if this option is important to you, open an issue")
+    (lib.mkRemovedOptionModule [ "virtualisation" "persistBootDevice" ] "Boot device is always persisted if you use a bootloader through the root disk image ; if this does not work for your usecase, please examine carefully what `virtualisation.{bootDevice, rootDevice, bootPartition}` options offer you and open an issue explaining your need.`")
   ];
 
   options = {
@@ -308,8 +304,8 @@ in
     virtualisation.fileSystems = options.fileSystems;
 
     virtualisation.memorySize =
-      mkOption {
-        type = types.ints.positive;
+      lib.mkOption {
+        type = lib.types.ints.positive;
         default = 1024;
         description = ''
             The memory size in megabytes of the virtual machine.
@@ -317,8 +313,8 @@ in
       };
 
     virtualisation.msize =
-      mkOption {
-        type = types.ints.positive;
+      lib.mkOption {
+        type = lib.types.ints.positive;
         default = 16384;
         description = ''
             The msize (maximum packet size) option passed to 9p file systems, in
@@ -328,8 +324,8 @@ in
       };
 
     virtualisation.diskSize =
-      mkOption {
-        type = types.ints.positive;
+      lib.mkOption {
+        type = lib.types.ints.positive;
         default = 1024;
         description = ''
             The disk size in megabytes of the virtual machine.
@@ -337,10 +333,10 @@ in
       };
 
     virtualisation.diskImage =
-      mkOption {
-        type = types.nullOr types.str;
+      lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
         default = "./${config.system.name}.qcow2";
-        defaultText = literalExpression ''"./''${config.system.name}.qcow2"'';
+        defaultText = lib.literalExpression ''"./''${config.system.name}.qcow2"'';
         description = ''
             Path to the disk image containing the root filesystem.
             The image will be created on startup if it does not
@@ -352,10 +348,10 @@ in
       };
 
     virtualisation.bootLoaderDevice =
-      mkOption {
-        type = types.path;
+      lib.mkOption {
+        type = lib.types.path;
         default = "/dev/disk/by-id/virtio-${rootDriveSerialAttr}";
-        defaultText = literalExpression ''/dev/disk/by-id/virtio-${rootDriveSerialAttr}'';
+        defaultText = lib.literalExpression ''/dev/disk/by-id/virtio-${rootDriveSerialAttr}'';
         example = "/dev/disk/by-id/virtio-boot-loader-device";
         description = ''
             The path (inside th VM) to the device to boot from when legacy booting.
@@ -363,10 +359,10 @@ in
         };
 
     virtualisation.bootPartition =
-      mkOption {
-        type = types.nullOr types.path;
+      lib.mkOption {
+        type = lib.types.nullOr lib.types.path;
         default = if cfg.useEFIBoot then "/dev/disk/by-label/${espFilesystemLabel}" else null;
-        defaultText = literalExpression ''if cfg.useEFIBoot then "/dev/disk/by-label/${espFilesystemLabel}" else null'';
+        defaultText = lib.literalExpression ''if cfg.useEFIBoot then "/dev/disk/by-label/${espFilesystemLabel}" else null'';
         example = "/dev/disk/by-label/esp";
         description = ''
             The path (inside the VM) to the device containing the EFI System Partition (ESP).
@@ -377,10 +373,10 @@ in
       };
 
     virtualisation.rootDevice =
-      mkOption {
-        type = types.nullOr types.path;
+      lib.mkOption {
+        type = lib.types.nullOr lib.types.path;
         default = "/dev/disk/by-label/${rootFilesystemLabel}";
-        defaultText = literalExpression ''/dev/disk/by-label/${rootFilesystemLabel}'';
+        defaultText = lib.literalExpression ''/dev/disk/by-label/${rootFilesystemLabel}'';
         example = "/dev/disk/by-label/nixos";
         description = ''
             The path (inside the VM) to the device containing the root filesystem.
@@ -388,8 +384,8 @@ in
       };
 
     virtualisation.emptyDiskImages =
-      mkOption {
-        type = types.listOf types.ints.positive;
+      lib.mkOption {
+        type = lib.types.listOf lib.types.ints.positive;
         default = [];
         description = ''
             Additional disk images to provide to the VM. The value is
@@ -399,8 +395,8 @@ in
       };
 
     virtualisation.graphics =
-      mkOption {
-        type = types.bool;
+      lib.mkOption {
+        type = lib.types.bool;
         default = true;
         description = ''
             Whether to run QEMU with a graphics window, or in nographic mode.
@@ -410,7 +406,7 @@ in
       };
 
     virtualisation.resolution =
-      mkOption {
+      lib.mkOption {
         type = options.services.xserver.resolutions.type.nestedTypes.elemType;
         default = { x = 1024; y = 768; };
         description = ''
@@ -419,8 +415,8 @@ in
       };
 
     virtualisation.cores =
-      mkOption {
-        type = types.ints.positive;
+      lib.mkOption {
+        type = lib.types.ints.positive;
         default = 1;
         description = ''
             Specify the number of cores the guest is permitted to use.
@@ -430,19 +426,19 @@ in
       };
 
     virtualisation.sharedDirectories =
-      mkOption {
-        type = types.attrsOf
-          (types.submodule {
-            options.source = mkOption {
-              type = types.str;
+      lib.mkOption {
+        type = lib.types.attrsOf
+          (lib.types.submodule {
+            options.source = lib.mkOption {
+              type = lib.types.str;
               description = "The path of the directory to share, can be a shell variable";
             };
-            options.target = mkOption {
-              type = types.path;
+            options.target = lib.mkOption {
+              type = lib.types.path;
               description = "The mount point of the directory inside the virtual machine";
             };
-            options.securityModel = mkOption {
-              type = types.enum [ "passthrough" "mapped-xattr" "mapped-file" "none" ];
+            options.securityModel = lib.mkOption {
+              type = lib.types.enum [ "passthrough" "mapped-xattr" "mapped-file" "none" ];
               default = "mapped-xattr";
               description = ''
                 The security model to use for this share:
@@ -466,8 +462,8 @@ in
       };
 
     virtualisation.additionalPaths =
-      mkOption {
-        type = types.listOf types.path;
+      lib.mkOption {
+        type = lib.types.listOf lib.types.path;
         default = [];
         description = ''
             A list of paths whose closure should be made available to
@@ -484,11 +480,11 @@ in
           '';
       };
 
-    virtualisation.forwardPorts = mkOption {
-      type = types.listOf
-        (types.submodule {
-          options.from = mkOption {
-            type = types.enum [ "host" "guest" ];
+    virtualisation.forwardPorts = lib.mkOption {
+      type = lib.types.listOf
+        (lib.types.submodule {
+          options.from = lib.mkOption {
+            type = lib.types.enum [ "host" "guest" ];
             default = "host";
             description = ''
                 Controls the direction in which the ports are mapped:
@@ -499,27 +495,27 @@ in
                   is forwarded to the given host port.
               '';
           };
-          options.proto = mkOption {
-            type = types.enum [ "tcp" "udp" ];
+          options.proto = lib.mkOption {
+            type = lib.types.enum [ "tcp" "udp" ];
             default = "tcp";
             description = "The protocol to forward.";
           };
-          options.host.address = mkOption {
-            type = types.str;
+          options.host.address = lib.mkOption {
+            type = lib.types.str;
             default = "";
             description = "The IPv4 address of the host.";
           };
-          options.host.port = mkOption {
-            type = types.port;
+          options.host.port = lib.mkOption {
+            type = lib.types.port;
             description = "The host port to be mapped.";
           };
-          options.guest.address = mkOption {
-            type = types.str;
+          options.guest.address = lib.mkOption {
+            type = lib.types.str;
             default = "";
             description = "The IPv4 address on the guest VLAN.";
           };
-          options.guest.port = mkOption {
-            type = types.port;
+          options.guest.port = lib.mkOption {
+            type = lib.types.port;
             description = "The guest port to be mapped.";
           };
         });
@@ -553,8 +549,8 @@ in
     };
 
     virtualisation.restrictNetwork =
-      mkOption {
-        type = types.bool;
+      lib.mkOption {
+        type = lib.types.bool;
         default = false;
         example = true;
         description = ''
@@ -566,8 +562,8 @@ in
       };
 
     virtualisation.vlans =
-      mkOption {
-        type = types.listOf types.ints.unsigned;
+      lib.mkOption {
+        type = lib.types.listOf lib.types.ints.unsigned;
         default = if config.virtualisation.interfaces == {} then [ 1 ] else [ ];
         defaultText = lib.literalExpression ''if config.virtualisation.interfaces == {} then [ 1 ] else [ ]'';
         example = [ 1 2 ];
@@ -583,7 +579,7 @@ in
           '';
       };
 
-    virtualisation.interfaces = mkOption {
+    virtualisation.interfaces = lib.mkOption {
       default = {};
       example = {
         enp1s0.vlan = 1;
@@ -591,17 +587,17 @@ in
       description = ''
         Network interfaces to add to the VM.
       '';
-      type = with types; attrsOf (submodule {
+      type = with lib.types; attrsOf (submodule {
         options = {
-          vlan = mkOption {
-            type = types.ints.unsigned;
+          vlan = lib.mkOption {
+            type = lib.types.ints.unsigned;
             description = ''
               VLAN to which the network interface is connected.
             '';
           };
 
-          assignIP = mkOption {
-            type = types.bool;
+          assignIP = lib.mkOption {
+            type = lib.types.bool;
             default = false;
             description = ''
               Automatically assign an IP address to the network interface using the same scheme as
@@ -613,10 +609,10 @@ in
     };
 
     virtualisation.writableStore =
-      mkOption {
-        type = types.bool;
+      lib.mkOption {
+        type = lib.types.bool;
         default = cfg.mountHostNixStore;
-        defaultText = literalExpression "cfg.mountHostNixStore";
+        defaultText = lib.literalExpression "cfg.mountHostNixStore";
         description = ''
             If enabled, the Nix store in the VM is made writable by
             layering an overlay filesystem on top of the host's Nix
@@ -627,8 +623,8 @@ in
       };
 
     virtualisation.writableStoreUseTmpfs =
-      mkOption {
-        type = types.bool;
+      lib.mkOption {
+        type = lib.types.bool;
         default = true;
         description = ''
             Use a tmpfs for the writable store instead of writing to the VM's
@@ -637,26 +633,26 @@ in
       };
 
     networking.primaryIPAddress =
-      mkOption {
-        type = types.str;
+      lib.mkOption {
+        type = lib.types.str;
         default = "";
         internal = true;
         description = "Primary IP address used in /etc/hosts.";
       };
 
     networking.primaryIPv6Address =
-      mkOption {
-        type = types.str;
+      lib.mkOption {
+        type = lib.types.str;
         default = "";
         internal = true;
         description = "Primary IPv6 address used in /etc/hosts.";
       };
 
-    virtualisation.host.pkgs = mkOption {
+    virtualisation.host.pkgs = lib.mkOption {
       type = options.nixpkgs.pkgs.type;
       default = pkgs;
-      defaultText = literalExpression "pkgs";
-      example = literalExpression ''
+      defaultText = lib.literalExpression "pkgs";
+      example = lib.literalExpression ''
         import pkgs.path { system = "x86_64-darwin"; }
       '';
       description = ''
@@ -667,17 +663,17 @@ in
 
     virtualisation.qemu = {
       package =
-        mkOption {
-          type = types.package;
+        lib.mkOption {
+          type = lib.types.package;
           default = if hostPkgs.stdenv.hostPlatform.qemuArch == pkgs.stdenv.hostPlatform.qemuArch then hostPkgs.qemu_kvm else hostPkgs.qemu;
-          defaultText = literalExpression "if hostPkgs.stdenv.hostPlatform.qemuArch == pkgs.stdenv.hostPlatform.qemuArch then config.virtualisation.host.pkgs.qemu_kvm else config.virtualisation.host.pkgs.qemu";
-          example = literalExpression "pkgs.qemu_test";
+          defaultText = lib.literalExpression "if hostPkgs.stdenv.hostPlatform.qemuArch == pkgs.stdenv.hostPlatform.qemuArch then config.virtualisation.host.pkgs.qemu_kvm else config.virtualisation.host.pkgs.qemu";
+          example = lib.literalExpression "pkgs.qemu_test";
           description = "QEMU package to use.";
         };
 
       options =
-        mkOption {
-          type = types.listOf types.str;
+        lib.mkOption {
+          type = lib.types.listOf lib.types.str;
           default = [];
           example = [ "-vga std" ];
           description = ''
@@ -686,11 +682,11 @@ in
           '';
         };
 
-      consoles = mkOption {
-        type = types.listOf types.str;
+      consoles = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
         default = let
           consoles = [ "${qemu-common.qemuSerialDevice},115200n8" "tty0" ];
-        in if cfg.graphics then consoles else reverseList consoles;
+        in if cfg.graphics then consoles else lib.reverseList consoles;
         example = [ "console=tty1" ];
         description = ''
           The output console devices to pass to the kernel command line via the
@@ -704,8 +700,8 @@ in
       };
 
       networkingOptions =
-        mkOption {
-          type = types.listOf types.str;
+        lib.mkOption {
+          type = lib.types.listOf lib.types.str;
           default = [ ];
           example = [
             "-net nic,netdev=user.0,model=virtio"
@@ -723,22 +719,22 @@ in
         };
 
       drives =
-        mkOption {
-          type = types.listOf (types.submodule driveOpts);
+        lib.mkOption {
+          type = lib.types.listOf (lib.types.submodule driveOpts);
           description = "Drives passed to qemu.";
         };
 
       diskInterface =
-        mkOption {
-          type = types.enum [ "virtio" "scsi" "ide" ];
+        lib.mkOption {
+          type = lib.types.enum [ "virtio" "scsi" "ide" ];
           default = "virtio";
           example = "scsi";
           description = "The interface used for the virtual hard disks.";
         };
 
       guestAgent.enable =
-        mkOption {
-          type = types.bool;
+        lib.mkOption {
+          type = lib.types.bool;
           default = true;
           description = ''
             Enable the Qemu guest agent.
@@ -746,8 +742,8 @@ in
         };
 
       virtioKeyboard =
-        mkOption {
-          type = types.bool;
+        lib.mkOption {
+          type = lib.types.bool;
           default = true;
           description = ''
             Enable the virtio-keyboard device.
@@ -756,8 +752,8 @@ in
     };
 
     virtualisation.useNixStoreImage =
-      mkOption {
-        type = types.bool;
+      lib.mkOption {
+        type = lib.types.bool;
         default = false;
         description = ''
           Build and use a disk image for the Nix store, instead of
@@ -779,10 +775,10 @@ in
       };
 
     virtualisation.mountHostNixStore =
-      mkOption {
-        type = types.bool;
+      lib.mkOption {
+        type = lib.types.bool;
         default = !cfg.useNixStoreImage && !cfg.useBootLoader;
-        defaultText = literalExpression "!cfg.useNixStoreImage && !cfg.useBootLoader";
+        defaultText = lib.literalExpression "!cfg.useNixStoreImage && !cfg.useBootLoader";
         description = ''
           Mount the host Nix store as a 9p mount.
         '';
@@ -790,8 +786,8 @@ in
 
     virtualisation.directBoot = {
       enable =
-        mkOption {
-          type = types.bool;
+        lib.mkOption {
+          type = lib.types.bool;
           default = !cfg.useBootLoader;
           defaultText = "!cfg.useBootLoader";
           description = ''
@@ -811,8 +807,8 @@ in
             '';
         };
       initrd =
-        mkOption {
-          type = types.str;
+        lib.mkOption {
+          type = lib.types.str;
           default = "${config.system.build.initialRamdisk}/${config.system.boot.loader.initrdFile}";
           defaultText = "\${config.system.build.initialRamdisk}/\${config.system.boot.loader.initrdFile}";
           description = ''
@@ -826,8 +822,8 @@ in
     };
 
     virtualisation.useBootLoader =
-      mkOption {
-        type = types.bool;
+      lib.mkOption {
+        type = lib.types.bool;
         default = false;
         description = ''
             Use a boot loader to boot the system.
@@ -841,8 +837,8 @@ in
       };
 
     virtualisation.useEFIBoot =
-      mkOption {
-        type = types.bool;
+      lib.mkOption {
+        type = lib.types.bool;
         default = false;
         description = ''
             If enabled, the virtual machine will provide a EFI boot
@@ -852,8 +848,8 @@ in
         };
 
     virtualisation.efi = {
-      OVMF = mkOption {
-        type = types.package;
+      OVMF = lib.mkOption {
+        type = lib.types.package;
         default = (pkgs.OVMF.override {
           secureBoot = cfg.useSecureBoot;
         }).fd;
@@ -863,40 +859,40 @@ in
         description = "OVMF firmware package, defaults to OVMF configured with secure boot if needed.";
       };
 
-      firmware = mkOption {
-        type = types.path;
+      firmware = lib.mkOption {
+        type = lib.types.path;
         default = cfg.efi.OVMF.firmware;
-        defaultText = literalExpression "cfg.efi.OVMF.firmware";
+        defaultText = lib.literalExpression "cfg.efi.OVMF.firmware";
         description = ''
             Firmware binary for EFI implementation, defaults to OVMF.
           '';
       };
 
-      variables = mkOption {
-        type = types.path;
+      variables = lib.mkOption {
+        type = lib.types.path;
         default = cfg.efi.OVMF.variables;
-        defaultText = literalExpression "cfg.efi.OVMF.variables";
+        defaultText = lib.literalExpression "cfg.efi.OVMF.variables";
         description = ''
             Platform-specific flash binary for EFI variables, implementation-dependent to the EFI firmware.
             Defaults to OVMF.
           '';
       };
 
-      keepVariables = mkOption {
-        type = types.bool;
+      keepVariables = lib.mkOption {
+        type = lib.types.bool;
         default = cfg.useBootLoader;
-        defaultText = literalExpression "cfg.useBootLoader";
+        defaultText = lib.literalExpression "cfg.useBootLoader";
         description = "Whether to keep EFI variable values from the generated system image";
       };
     };
 
     virtualisation.tpm = {
-      enable = mkEnableOption "a TPM device in the virtual machine with a driver, using swtpm";
+      enable = lib.mkEnableOption "a TPM device in the virtual machine with a driver, using swtpm";
 
-      package = mkPackageOption cfg.host.pkgs "swtpm" { };
+      package = lib.mkPackageOption cfg.host.pkgs "swtpm" { };
 
-      deviceModel = mkOption {
-        type = types.str;
+      deviceModel = lib.mkOption {
+        type = lib.types.str;
         default = ({
           "i686-linux" = "tpm-tis";
           "x86_64-linux" = "tpm-tis";
@@ -917,8 +913,8 @@ in
     };
 
     virtualisation.useDefaultFilesystems =
-      mkOption {
-        type = types.bool;
+      lib.mkOption {
+        type = lib.types.bool;
         default = true;
         description = ''
             If enabled, the boot disk of the virtual machine will be
@@ -931,8 +927,8 @@ in
       };
 
     virtualisation.useSecureBoot =
-      mkOption {
-        type = types.bool;
+      lib.mkOption {
+        type = lib.types.bool;
         default = false;
         description = ''
             Enable Secure Boot support in the EFI firmware.
@@ -940,8 +936,8 @@ in
       };
 
     virtualisation.bios =
-      mkOption {
-        type = types.nullOr types.package;
+      lib.mkOption {
+        type = lib.types.nullOr lib.types.package;
         default = null;
         description = ''
             An alternate BIOS (such as `qboot`) with which to start the VM.
@@ -951,8 +947,8 @@ in
       };
 
     virtualisation.useHostCerts =
-      mkOption {
-        type = types.bool;
+      lib.mkOption {
+        type = lib.types.bool;
         default = false;
         description = ''
             If enabled, when `NIX_SSL_CERT_FILE` is set on the host,
@@ -1002,7 +998,7 @@ in
         ];
 
     warnings =
-      optional (cfg.directBoot.enable && cfg.useBootLoader)
+      lib.optional (cfg.directBoot.enable && cfg.useBootLoader)
         ''
           You enabled direct boot and a bootloader, QEMU will not boot your bootloader, rendering
           `useBootLoader` useless. You might want to disable one of those options.
@@ -1012,10 +1008,10 @@ in
     # legacy and UEFI. In order to avoid this, we have to put "nodev" to force UEFI-only installs.
     # Otherwise, we set the proper bootloader device for this.
     # FIXME: make a sense of this mess wrt to multiple ESP present in the system, probably use boot.efiSysMountpoint?
-    boot.loader.grub.device = mkVMOverride (if cfg.useEFIBoot then "nodev" else cfg.bootLoaderDevice);
+    boot.loader.grub.device = lib.mkVMOverride (if cfg.useEFIBoot then "nodev" else cfg.bootLoaderDevice);
     boot.loader.grub.gfxmodeBios = with cfg.resolution; "${toString x}x${toString y}";
 
-    boot.loader.supportsInitrdSecrets = mkIf (!cfg.useBootLoader) (mkVMOverride false);
+    boot.loader.supportsInitrdSecrets = lib.mkIf (!cfg.useBootLoader) (lib.mkVMOverride false);
 
     # After booting, register the closure of the paths in
     # `virtualisation.additionalPaths' in the Nix database in the VM.  This
@@ -1032,13 +1028,13 @@ in
       '';
 
     boot.initrd.availableKernelModules =
-      optional (cfg.qemu.diskInterface == "scsi") "sym53c8xx"
-      ++ optional (cfg.tpm.enable) "tpm_tis";
+      lib.optional (cfg.qemu.diskInterface == "scsi") "sym53c8xx"
+      ++ lib.optional (cfg.tpm.enable) "tpm_tis";
 
     virtualisation.additionalPaths = [ config.system.build.toplevel ];
 
     virtualisation.sharedDirectories = {
-      nix-store = mkIf cfg.mountHostNixStore {
+      nix-store = lib.mkIf cfg.mountHostNixStore {
         source = builtins.storeDir;
         # Always mount this to /nix/.ro-store because we never want to actually
         # write to the host Nix Store.
@@ -1055,18 +1051,18 @@ in
         target = "/tmp/shared";
         securityModel = "none";
       };
-      certs = mkIf cfg.useHostCerts {
+      certs = lib.mkIf cfg.useHostCerts {
         source = ''"$TMPDIR"/certs'';
         target = "/etc/ssl/certs";
         securityModel = "none";
       };
     };
 
-    security.pki.installCACerts = mkIf cfg.useHostCerts false;
+    security.pki.installCACerts = lib.mkIf cfg.useHostCerts false;
 
     virtualisation.qemu.networkingOptions =
       let
-        forwardingOptions = flip concatMapStrings cfg.forwardPorts
+        forwardingOptions = lib.flip lib.concatMapStrings cfg.forwardPorts
           ({ proto, from, host, guest }:
             if from == "host"
               then "hostfwd=${proto}:${host.address}:${toString host.port}-" +
@@ -1081,48 +1077,48 @@ in
         "-netdev user,id=user.0,${forwardingOptions}${restrictNetworkOption}\"$QEMU_NET_OPTS\""
       ];
 
-    virtualisation.qemu.options = mkMerge [
-      (mkIf cfg.qemu.virtioKeyboard [
+    virtualisation.qemu.options = lib.mkMerge [
+      (lib.mkIf cfg.qemu.virtioKeyboard [
         "-device virtio-keyboard"
       ])
-      (mkIf pkgs.stdenv.hostPlatform.isx86 [
+      (lib.mkIf pkgs.stdenv.hostPlatform.isx86 [
         "-usb" "-device usb-tablet,bus=usb-bus.0"
       ])
-      (mkIf pkgs.stdenv.hostPlatform.isAarch [
+      (lib.mkIf pkgs.stdenv.hostPlatform.isAarch [
         "-device virtio-gpu-pci" "-device usb-ehci,id=usb0" "-device usb-kbd" "-device usb-tablet"
       ])
       (let
-        alphaNumericChars = lowerChars ++ upperChars ++ (map toString (range 0 9));
+        alphaNumericChars = lib.lowerChars ++ lib.upperChars ++ (map toString (lib.range 0 9));
         # Replace all non-alphanumeric characters with underscores
-        sanitizeShellIdent = s: concatMapStrings (c: if builtins.elem c alphaNumericChars then c else "_") (stringToCharacters s);
-      in mkIf cfg.directBoot.enable [
+        sanitizeShellIdent = s: lib.concatMapStrings (c: if builtins.elem c alphaNumericChars then c else "_") (lib.stringToCharacters s);
+      in lib.mkIf cfg.directBoot.enable [
         "-kernel \${NIXPKGS_QEMU_KERNEL_${sanitizeShellIdent config.system.name}:-${config.system.build.toplevel}/kernel}"
         "-initrd ${cfg.directBoot.initrd}"
         ''-append "$(cat ${config.system.build.toplevel}/kernel-params) init=${config.system.build.toplevel}/init regInfo=${regInfo}/registration ${consoles} $QEMU_KERNEL_PARAMS"''
       ])
-      (mkIf cfg.useEFIBoot [
+      (lib.mkIf cfg.useEFIBoot [
         "-drive if=pflash,format=raw,unit=0,readonly=on,file=${cfg.efi.firmware}"
         "-drive if=pflash,format=raw,unit=1,readonly=off,file=$NIX_EFI_VARS"
       ])
-      (mkIf (cfg.bios != null) [
+      (lib.mkIf (cfg.bios != null) [
         "-bios ${cfg.bios}/bios.bin"
       ])
-      (mkIf (!cfg.graphics) [
+      (lib.mkIf (!cfg.graphics) [
         "-nographic"
       ])
-      (mkIf (cfg.tpm.enable) [
+      (lib.mkIf (cfg.tpm.enable) [
         "-chardev socket,id=chrtpm,path=\"$NIX_SWTPM_DIR\"/socket"
         "-tpmdev emulator,id=tpm_dev_0,chardev=chrtpm"
         "-device ${cfg.tpm.deviceModel},tpmdev=tpm_dev_0"
       ])
-      (mkIf (pkgs.stdenv.hostPlatform.isx86 && cfg.efi.OVMF.systemManagementModeRequired) [
+      (lib.mkIf (pkgs.stdenv.hostPlatform.isx86 && cfg.efi.OVMF.systemManagementModeRequired) [
         "-machine" "q35,smm=on"
         "-global" "driver=cfi.pflash01,property=secure,value=on"
       ])
     ];
 
-    virtualisation.qemu.drives = mkMerge [
-      (mkIf (cfg.diskImage != null) [{
+    virtualisation.qemu.drives = lib.mkMerge [
+      (lib.mkIf (cfg.diskImage != null) [{
         name = "root";
         file = ''"$NIX_DISK_IMAGE"'';
         driveExtraOpts.cache = "writeback";
@@ -1130,13 +1126,13 @@ in
         deviceExtraOpts.bootindex = "1";
         deviceExtraOpts.serial = rootDriveSerialAttr;
       }])
-      (mkIf cfg.useNixStoreImage [{
+      (lib.mkIf cfg.useNixStoreImage [{
         name = "nix-store";
         file = ''"$TMPDIR"/store.img'';
         deviceExtraOpts.bootindex = "2";
         driveExtraOpts.format = "raw";
       }])
-      (imap0 (idx: _: {
+      (lib.imap0 (idx: _: {
         file = "$(pwd)/empty${toString idx}.qcow2";
         driveExtraOpts.werror = "report";
       }) cfg.emptyDiskImages)
@@ -1147,7 +1143,7 @@ in
     # value for the `fileSystems' attribute should be disregarded (since those
     # filesystems don't necessarily exist in the VM). You can disable this
     # override by setting `virtualisation.fileSystems = lib.mkForce { };`.
-    fileSystems = lib.mkIf (cfg.fileSystems != { }) (mkVMOverride cfg.fileSystems);
+    fileSystems = lib.mkIf (cfg.fileSystems != { }) (lib.mkVMOverride cfg.fileSystems);
 
     virtualisation.fileSystems = let
       mkSharedDir = tag: share:
@@ -1205,8 +1201,8 @@ in
       }
     ];
 
-    swapDevices = (if cfg.useDefaultFilesystems then mkVMOverride else mkDefault) [ ];
-    boot.initrd.luks.devices = (if cfg.useDefaultFilesystems then mkVMOverride else mkDefault) {};
+    swapDevices = (if cfg.useDefaultFilesystems then lib.mkVMOverride else lib.mkDefault) [ ];
+    boot.initrd.luks.devices = (if cfg.useDefaultFilesystems then lib.mkVMOverride else lib.mkDefault) {};
 
     # Don't run ntpd in the guest.  It should get the correct time from KVM.
     services.timesyncd.enable = false;
@@ -1225,9 +1221,9 @@ in
 
     # When building a regular system configuration, override whatever
     # video driver the host uses.
-    services.xserver.videoDrivers = mkVMOverride [ "modesetting" ];
-    services.xserver.defaultDepth = mkVMOverride 0;
-    services.xserver.resolutions = mkVMOverride [ cfg.resolution ];
+    services.xserver.videoDrivers = lib.mkVMOverride [ "modesetting" ];
+    services.xserver.defaultDepth = lib.mkVMOverride 0;
+    services.xserver.resolutions = lib.mkVMOverride [ cfg.resolution ];
     services.xserver.monitorSection =
       ''
         # Set a higher refresh rate so that resolutions > 800x600 work.
@@ -1236,8 +1232,8 @@ in
       '';
 
     # Wireless won't work in the VM.
-    networking.wireless.enable = mkVMOverride false;
-    services.connman.enable = mkVMOverride false;
+    networking.wireless.enable = lib.mkVMOverride false;
+    services.connman.enable = lib.mkVMOverride false;
 
     # Speed up booting by not waiting for ARP.
     networking.dhcpcd.extraConfig = "noarp";
@@ -1257,10 +1253,10 @@ in
         (isYes "NET_CORE")
         (isYes "INET")
         (isYes "NETWORK_FILESYSTEMS")
-      ] ++ optionals (!cfg.graphics) [
+      ] ++ lib.optionals (!cfg.graphics) [
         (isYes "SERIAL_8250_CONSOLE")
         (isYes "SERIAL_8250")
-      ] ++ optionals (cfg.writableStore) [
+      ] ++ lib.optionals (cfg.writableStore) [
         (isEnabled "OVERLAY_FS")
       ];
 

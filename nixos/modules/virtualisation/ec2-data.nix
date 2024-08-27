@@ -1,14 +1,10 @@
 # This module defines a systemd service that sets the SSH host key and
 # authorized client key and host name of virtual machines running on
 # Amazon EC2, Eucalyptus and OpenStack Compute (Nova).
-
 { config, lib, pkgs, ... }:
-
-with lib;
-
 {
   imports = [
-    (mkRemovedOptionModule [ "ec2" "metadata" ] "")
+    (lib.mkRemovedOptionModule [ "ec2" "metadata" ] "")
   ];
 
   config = {
@@ -24,7 +20,7 @@ with lib;
 
         script =
           ''
-            ${optionalString (config.networking.hostName == "") ''
+            ${lib.optionalString (config.networking.hostName == "") ''
               echo "setting host name..."
               if [ -s /etc/ec2-metadata/hostname ]; then
                   ${pkgs.nettools}/bin/hostname $(cat /etc/ec2-metadata/hostname)

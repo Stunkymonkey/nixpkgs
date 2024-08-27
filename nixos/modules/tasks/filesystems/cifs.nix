@@ -1,7 +1,4 @@
 { config, lib, pkgs, ... }:
-
-with lib;
-
 let
 
   inInitrd = config.boot.initrd.supportedFilesystems.cifs or false;
@@ -11,17 +8,17 @@ in
 {
   config = {
 
-    system.fsPackages = mkIf (config.boot.supportedFilesystems.cifs or false) [ pkgs.cifs-utils ];
+    system.fsPackages = lib.mkIf (config.boot.supportedFilesystems.cifs or false) [ pkgs.cifs-utils ];
 
-    boot.initrd.availableKernelModules = mkIf inInitrd
+    boot.initrd.availableKernelModules = lib.mkIf inInitrd
       [ "cifs" "nls_utf8" "hmac" "md4" "ecb" "des_generic" "sha256" ];
 
-    boot.initrd.extraUtilsCommands = mkIf (inInitrd && !config.boot.initrd.systemd.enable)
+    boot.initrd.extraUtilsCommands = lib.mkIf (inInitrd && !config.boot.initrd.systemd.enable)
       ''
         copy_bin_and_libs ${pkgs.cifs-utils}/sbin/mount.cifs
       '';
 
-    boot.initrd.systemd.extraBin."mount.cifs" = mkIf inInitrd "${pkgs.cifs-utils}/sbin/mount.cifs";
+    boot.initrd.systemd.extraBin."mount.cifs" = lib.mkIf inInitrd "${pkgs.cifs-utils}/sbin/mount.cifs";
 
   };
 }

@@ -1,23 +1,20 @@
 { config, lib, pkgs, ... }:
-
-with lib;
-
 let
 
   cfg = config.virtualisation.anbox;
 
   addrOpts = v: addr: pref: name: {
-    address = mkOption {
+    address = lib.mkOption {
       default = addr;
-      type = types.str;
+      type = lib.types.str;
       description = ''
         IPv${toString v} ${name} address.
       '';
     };
 
-    prefixLength = mkOption {
+    prefixLength = lib.mkOption {
       default = pref;
-      type = types.addCheck types.int (n: n >= 0 && n <= (if v == 4 then 32 else 128));
+      type = lib.types.addCheck lib.types.int (n: n >= 0 && n <= (if v == 4 then 32 else 128));
       description = ''
         Subnet mask of the ${name} address, specified as the number of
         bits in the prefix (`${if v == 4 then "24" else "64"}`).
@@ -53,20 +50,20 @@ in
 
   options.virtualisation.anbox = {
 
-    enable = mkEnableOption "Anbox";
+    enable = lib.mkEnableOption "Anbox";
 
-    image = mkOption {
+    image = lib.mkOption {
       default = pkgs.anbox.image;
-      defaultText = literalExpression "pkgs.anbox.image";
-      type = types.package;
+      defaultText = lib.literalExpression "pkgs.anbox.image";
+      type = lib.types.package;
       description = ''
         Base android image for Anbox.
       '';
     };
 
-    imageModifications = mkOption {
+    imageModifications = lib.mkOption {
       default = "";
-      type = types.lines;
+      type = lib.types.lines;
       description = ''
         Commands to edit the image filesystem.
 
@@ -76,8 +73,8 @@ in
       '';
     };
 
-    extraInit = mkOption {
-      type = types.lines;
+    extraInit = lib.mkOption {
+      type = lib.types.lines;
       default = "";
       description = ''
         Extra shell commands to be run inside the container image during init.
@@ -88,9 +85,9 @@ in
       container = addrOpts 4 "192.168.250.2" 24 "Container";
       gateway = addrOpts 4 "192.168.250.1" 24 "Host";
 
-      dns = mkOption {
+      dns = lib.mkOption {
         default = "1.1.1.1";
-        type = types.str;
+        type = lib.types.str;
         description = ''
           Container DNS server.
         '';
@@ -98,16 +95,16 @@ in
     };
   };
 
-  config = mkIf cfg.enable {
+  config = lib.mkIf cfg.enable {
 
-    assertions = singleton {
+    assertions = lib.singleton {
       assertion = with config.boot.kernelPackages; kernelAtLeast "5.5" && kernelOlder "5.18";
       message = "Anbox needs a kernel with binder and ashmem support";
     };
 
     environment.systemPackages = with pkgs; [ anbox ];
 
-    systemd.mounts = singleton {
+    systemd.mounts = lib.singleton {
       requiredBy = [ "anbox-container-manager.service" ];
       description = "Anbox Binder File System";
       what = "binder";

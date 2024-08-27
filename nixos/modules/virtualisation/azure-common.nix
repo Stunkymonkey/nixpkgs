@@ -1,13 +1,11 @@
 { config, lib, pkgs, ... }:
-
-with lib;
 let
   cfg = config.virtualisation.azure;
   mlxDrivers = [ "mlx4_en" "mlx4_core" "mlx5_core" ];
 in
 {
   options.virtualisation.azure = {
-    acceleratedNetworking = mkOption {
+    acceleratedNetworking = lib.mkOption {
       default = false;
       description = "Whether the machine's network interface has enabled accelerated networking.";
     };
@@ -50,8 +48,8 @@ in
     services.openssh.settings.PermitRootLogin = "prohibit-password";
     services.openssh.settings.ClientAliveInterval = 180;
 
-    # Force getting the hostname from Azure
-    networking.hostName = mkDefault "";
+  # Force getting the hostname from Azure
+  networking.hostName = lib.mkDefault "";
 
     # Always include cryptsetup so that NixOps can use it.
     # sg_scan is needed to finalize disk removal on older kernels

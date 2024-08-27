@@ -1,7 +1,4 @@
 { config, lib, pkgs, ... }:
-
-with lib;
-
 let
   cfg = config.virtualisation.amazon-init;
 
@@ -57,16 +54,16 @@ let
 in {
 
   options.virtualisation.amazon-init = {
-    enable = mkOption {
+    enable = lib.mkOption {
       default = true;
-      type = types.bool;
+      type = lib.types.bool;
       description = ''
         Enable or disable the amazon-init service.
       '';
     };
   };
 
-  config = mkIf cfg.enable {
+  config = lib.mkIf cfg.enable {
     systemd.services.amazon-init = {
       inherit script;
       description = "Reconfigure the system from EC2 userdata on startup";
@@ -84,5 +81,5 @@ in {
       };
     };
   };
-  meta.maintainers = with maintainers; [ arianvp ];
+  meta.maintainers = with lib.maintainers; [ arianvp ];
 }

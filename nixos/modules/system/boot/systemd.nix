@@ -1,9 +1,6 @@
 { config, lib, pkgs, utils, ... }:
-
 with utils;
 with systemdUtils.unitOptions;
-with lib;
-
 let
 
   cfg = config.systemd;
@@ -33,11 +30,11 @@ let
       "nss-lookup.target"
       "nss-user-lookup.target"
       "time-sync.target"
-    ] ++ optionals cfg.package.withCryptsetup [
+    ] ++ lib.optionals cfg.package.withCryptsetup [
       "cryptsetup.target"
       "cryptsetup-pre.target"
       "remote-cryptsetup.target"
-    ] ++ optionals cfg.package.withTpm2Tss [
+    ] ++ lib.optionals cfg.package.withTpm2Tss [
       "tpm2.target"
     ] ++ [
       "sigpwr.target"
@@ -57,7 +54,7 @@ let
       "systemd-udevd-kernel.socket"
       "systemd-udevd.service"
       "systemd-udev-settle.service"
-      ] ++ (optional (!config.boot.isContainer) "systemd-udev-trigger.service") ++ [
+      ] ++ (lib.optional (!config.boot.isContainer) "systemd-udev-trigger.service") ++ [
       # hwdb.bin is managed by NixOS
       # "systemd-hwdb-update.service"
 
@@ -96,12 +93,12 @@ let
       "dev-hugepages.mount"
       "dev-mqueue.mount"
       "sys-fs-fuse-connections.mount"
-      ] ++ (optional (!config.boot.isContainer) "sys-kernel-config.mount") ++ [
+      ] ++ (lib.optional (!config.boot.isContainer) "sys-kernel-config.mount") ++ [
       "sys-kernel-debug.mount"
 
       # Maintaining state across reboots.
       "systemd-random-seed.service"
-      ] ++ (optional cfg.package.withBootloader "systemd-boot-random-seed.service") ++ [
+      ] ++ (lib.optional cfg.package.withBootloader "systemd-boot-random-seed.service") ++ [
       "systemd-backlight@.service"
       "systemd-rfkill.service"
       "systemd-rfkill.socket"
@@ -150,9 +147,9 @@ let
 
       # Slices / containers.
       "slices.target"
-    ] ++ optionals cfg.package.withImportd [
+    ] ++ lib.optionals cfg.package.withImportd [
       "systemd-importd.service"
-    ] ++ optionals cfg.package.withMachined [
+    ] ++ lib.optionals cfg.package.withMachined [
       "machine.slice"
       "machines.target"
       "systemd-machined.service"
@@ -161,17 +158,17 @@ let
 
       # Misc.
       "systemd-sysctl.service"
-    ] ++ optionals cfg.package.withTimedated [
+    ] ++ lib.optionals cfg.package.withTimedated [
       "dbus-org.freedesktop.timedate1.service"
       "systemd-timedated.service"
-    ] ++ optionals cfg.package.withLocaled [
+    ] ++ lib.optionals cfg.package.withLocaled [
       "dbus-org.freedesktop.locale1.service"
       "systemd-localed.service"
-    ] ++ optionals cfg.package.withHostnamed [
+    ] ++ lib.optionals cfg.package.withHostnamed [
       "dbus-org.freedesktop.hostname1.service"
       "systemd-hostnamed.service"
       "systemd-hostnamed.socket"
-    ] ++ optionals cfg.package.withPortabled [
+    ] ++ lib.optionals cfg.package.withPortabled [
       "dbus-org.freedesktop.portable1.service"
       "systemd-portabled.service"
     ] ++ [
@@ -196,52 +193,52 @@ in
 
   options.systemd = {
 
-    package = mkPackageOption pkgs "systemd" {};
+    package = lib.mkPackageOption pkgs "systemd" {};
 
-    units = mkOption {
+    units = lib.mkOption {
       description = "Definition of systemd units; see {manpage}`systemd.unit(5)`.";
       default = {};
       type = systemdUtils.types.units;
     };
 
-    packages = mkOption {
+    packages = lib.mkOption {
       default = [];
-      type = types.listOf types.package;
-      example = literalExpression "[ pkgs.systemd-cryptsetup-generator ]";
+      type = lib.types.listOf lib.types.package;
+      example = lib.literalExpression "[ pkgs.systemd-cryptsetup-generator ]";
       description = "Packages providing systemd units and hooks.";
     };
 
-    targets = mkOption {
+    targets = lib.mkOption {
       default = {};
       type = systemdUtils.types.targets;
       description = "Definition of systemd target units; see {manpage}`systemd.target(5)`";
     };
 
-    services = mkOption {
+    services = lib.mkOption {
       default = {};
       type = systemdUtils.types.services;
       description = "Definition of systemd service units; see {manpage}`systemd.service(5)`.";
     };
 
-    sockets = mkOption {
+    sockets = lib.mkOption {
       default = {};
       type = systemdUtils.types.sockets;
       description = "Definition of systemd socket units; see {manpage}`systemd.socket(5)`.";
     };
 
-    timers = mkOption {
+    timers = lib.mkOption {
       default = {};
       type = systemdUtils.types.timers;
       description = "Definition of systemd timer units; see {manpage}`systemd.timer(5)`.";
     };
 
-    paths = mkOption {
+    paths = lib.mkOption {
       default = {};
       type = systemdUtils.types.paths;
       description = "Definition of systemd path units; see {manpage}`systemd.path(5)`.";
     };
 
-    mounts = mkOption {
+    mounts = lib.mkOption {
       default = [];
       type = systemdUtils.types.mounts;
       description = ''
@@ -252,7 +249,7 @@ in
       '';
     };
 
-    automounts = mkOption {
+    automounts = lib.mkOption {
       default = [];
       type = systemdUtils.types.automounts;
       description = ''
@@ -263,14 +260,14 @@ in
       '';
     };
 
-    slices = mkOption {
+    slices = lib.mkOption {
       default = {};
       type = systemdUtils.types.slices;
       description = "Definition of slice configurations; see {manpage}`systemd.slice(5)`.";
     };
 
-    generators = mkOption {
-      type = types.attrsOf types.path;
+    generators = lib.mkOption {
+      type = lib.types.attrsOf lib.types.path;
       default = {};
       example = { systemd-gpt-auto-generator = "/dev/null"; };
       description = ''
@@ -281,8 +278,8 @@ in
       '';
     };
 
-    shutdown = mkOption {
-      type = types.attrsOf types.path;
+    shutdown = lib.mkOption {
+      type = lib.types.attrsOf lib.types.path;
       default = {};
       description = ''
         Definition of systemd shutdown executables.
@@ -291,17 +288,17 @@ in
       '';
     };
 
-    defaultUnit = mkOption {
+    defaultUnit = lib.mkOption {
       default = "multi-user.target";
-      type = types.str;
+      type = lib.types.str;
       description = ''
         Default unit started when the system boots; see {manpage}`systemd.special(7)`.
       '';
     };
 
-    ctrlAltDelUnit = mkOption {
+    ctrlAltDelUnit = lib.mkOption {
       default = "reboot.target";
-      type = types.str;
+      type = lib.types.str;
       example = "poweroff.target";
       description = ''
         Target that should be started when Ctrl-Alt-Delete is pressed;
@@ -309,8 +306,8 @@ in
       '';
     };
 
-    globalEnvironment = mkOption {
-      type = with types; attrsOf (nullOr (oneOf [ str path package ]));
+    globalEnvironment = lib.mkOption {
+      type = with lib.types; attrsOf (nullOr (oneOf [ str path package ]));
       default = {};
       example = { TZ = "CET"; };
       description = ''
@@ -318,8 +315,8 @@ in
       '';
     };
 
-    managerEnvironment = mkOption {
-      type = with types; attrsOf (nullOr (oneOf [ str path package ]));
+    managerEnvironment = lib.mkOption {
+      type = with lib.types; attrsOf (nullOr (oneOf [ str path package ]));
       default = {};
       example = { SYSTEMD_LOG_LEVEL = "debug"; };
       description = ''
@@ -328,17 +325,17 @@ in
       '';
     };
 
-    enableCgroupAccounting = mkOption {
+    enableCgroupAccounting = lib.mkOption {
       default = true;
-      type = types.bool;
+      type = lib.types.bool;
       description = ''
         Whether to enable cgroup accounting; see {manpage}`cgroups(7)`.
       '';
     };
 
-    extraConfig = mkOption {
+    extraConfig = lib.mkOption {
       default = "";
-      type = types.lines;
+      type = lib.types.lines;
       example = "DefaultLimitCORE=infinity";
       description = ''
         Extra config options for systemd. See {manpage}`systemd-system.conf(5)` man page
@@ -346,9 +343,9 @@ in
       '';
     };
 
-    sleep.extraConfig = mkOption {
+    sleep.extraConfig = lib.mkOption {
       default = "";
-      type = types.lines;
+      type = lib.types.lines;
       example = "HibernateDelaySec=1h";
       description = ''
         Extra config options for systemd sleep state logic.
@@ -356,18 +353,18 @@ in
       '';
     };
 
-    additionalUpstreamSystemUnits = mkOption {
+    additionalUpstreamSystemUnits = lib.mkOption {
       default = [ ];
-      type = types.listOf types.str;
+      type = lib.types.listOf lib.types.str;
       example = [ "debug-shell.service" "systemd-quotacheck.service" ];
       description = ''
         Additional units shipped with systemd that shall be enabled.
       '';
     };
 
-    suppressedSystemUnits = mkOption {
+    suppressedSystemUnits = lib.mkOption {
       default = [ ];
-      type = types.listOf types.str;
+      type = lib.types.listOf lib.types.str;
       example = [ "systemd-backlight@.service" ];
       description = ''
         A list of units to skip when generating system systemd configuration directory. This has
@@ -378,8 +375,8 @@ in
       '';
     };
 
-    watchdog.device = mkOption {
-      type = types.nullOr types.path;
+    watchdog.device = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
       default = null;
       example = "/dev/watchdog";
       description = ''
@@ -388,8 +385,8 @@ in
       '';
     };
 
-    watchdog.runtimeTime = mkOption {
-      type = types.nullOr types.str;
+    watchdog.runtimeTime = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
       default = null;
       example = "30s";
       description = ''
@@ -401,8 +398,8 @@ in
       '';
     };
 
-    watchdog.rebootTime = mkOption {
-      type = types.nullOr types.str;
+    watchdog.rebootTime = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
       default = null;
       example = "10m";
       description = ''
@@ -416,8 +413,8 @@ in
       '';
     };
 
-    watchdog.kexecTime = mkOption {
-      type = types.nullOr types.str;
+    watchdog.kexecTime = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
       default = null;
       example = "10m";
       description = ''
@@ -443,22 +440,22 @@ in
         "${name}.${typeStr} is ordered after 'network-online.target' but doesn't depend on it";
       mkNetOnlineWarns = typeStr: defs: lib.concatLists (lib.mapAttrsToList (mkOneNetOnlineWarn typeStr) defs);
       mkMountNetOnlineWarns = typeStr: defs: lib.concatLists (map (m: mkOneNetOnlineWarn typeStr m.what m) defs);
-    in concatLists (
-      mapAttrsToList
+    in lib.concatLists (
+      lib.mapAttrsToList
         (name: service:
           let
             type = service.serviceConfig.Type or "";
             restart = service.serviceConfig.Restart or "no";
             hasDeprecated = builtins.hasAttr "StartLimitInterval" service.serviceConfig;
           in
-            concatLists [
-              (optional (type == "oneshot" && (restart == "always" || restart == "on-success"))
+            lib.concatLists [
+              (lib.optional (type == "oneshot" && (restart == "always" || restart == "on-success"))
                 "Service '${name}.service' with 'Type=oneshot' cannot have 'Restart=always' or 'Restart=on-success'"
               )
-              (optional hasDeprecated
+              (lib.optional hasDeprecated
                 "Service '${name}.service' uses the attribute 'StartLimitInterval' in the Service section, which is deprecated. See https://github.com/NixOS/nixpkgs/issues/45786."
               )
-              (optional (service.reloadIfChanged && service.reloadTriggers != [])
+              (lib.optional (service.reloadIfChanged && service.reloadTriggers != [])
                 "Service '${name}.service' has both 'reloadIfChanged' and 'reloadTriggers' set. This is probably not what you want, because 'reloadTriggers' behave the same whay as 'restartTriggers' if 'reloadIfChanged' is set."
               )
             ]
@@ -474,14 +471,14 @@ in
     ++ (mkMountNetOnlineWarns "automount" cfg.automounts)
     ++ (mkNetOnlineWarns "slice" cfg.slices);
 
-    assertions = concatLists (
-      mapAttrsToList
+    assertions = lib.concatLists (
+      lib.mapAttrsToList
         (name: service:
           map (message: {
             assertion = false;
             inherit message;
-          }) (concatLists [
-            (optional ((builtins.elem "network-interfaces.target" service.after) || (builtins.elem "network-interfaces.target" service.wants))
+          }) (lib.concatLists [
+            (lib.optional ((builtins.elem "network-interfaces.target" service.after) || (builtins.elem "network-interfaces.target" service.wants))
               "Service '${name}.service' is using the deprecated target network-interfaces.target, which no longer exists. Using network.target is recommended instead."
             )
           ])
@@ -493,14 +490,14 @@ in
 
     system.nssModules = [ cfg.package.out ];
     system.nssDatabases = {
-      hosts = (mkMerge [
-        (mkOrder 400 ["mymachines"]) # 400 to ensure it comes before resolve (which is 501)
-        (mkOrder 999 ["myhostname"]) # after files (which is 998), but before regular nss modules
+      hosts = (lib.mkMerge [
+        (lib.mkOrder 400 ["mymachines"]) # 400 to ensure it comes before resolve (which is 501)
+        (lib.mkOrder 999 ["myhostname"]) # after files (which is 998), but before regular nss modules
       ]);
-      passwd = (mkMerge [
+      passwd = (lib.mkMerge [
         (mkAfter [ "systemd" ])
       ]);
-      group = (mkMerge [
+      group = (lib.mkMerge [
         (mkAfter [ "[success=merge] systemd" ]) # need merge so that NSS won't stop at file-based groups
       ]);
     };
@@ -522,11 +519,11 @@ in
             ln -s $hook $out/
           done
         done
-        ${concatStrings (mapAttrsToList (exec: target: "ln -s ${target} $out/${exec};\n") links)}
+        ${lib.concatStrings (lib.mapAttrsToList (exec: target: "ln -s ${target} $out/${exec};\n") links)}
       '';
 
-      enabledUpstreamSystemUnits = filter (n: ! elem n cfg.suppressedSystemUnits) upstreamSystemUnits;
-      enabledUnits = filterAttrs (n: v: ! elem n cfg.suppressedSystemUnits) cfg.units;
+      enabledUpstreamSystemUnits = lib.filter (n: ! lib.elem n cfg.suppressedSystemUnits) upstreamSystemUnits;
+      enabledUnits = lib.filterAttrs (n: v: ! lib.elem n cfg.suppressedSystemUnits) cfg.units;
 
     in ({
       "systemd/system".source = generateUnits {
@@ -539,23 +536,23 @@ in
       "systemd/system.conf".text = ''
         [Manager]
         ManagerEnvironment=${lib.concatStringsSep " " (lib.mapAttrsToList (n: v: "${n}=${lib.escapeShellArg v}") cfg.managerEnvironment)}
-        ${optionalString cfg.enableCgroupAccounting ''
+        ${lib.optionalString cfg.enableCgroupAccounting ''
           DefaultCPUAccounting=yes
           DefaultIOAccounting=yes
           DefaultBlockIOAccounting=yes
           DefaultIPAccounting=yes
         ''}
         DefaultLimitCORE=infinity
-        ${optionalString (cfg.watchdog.device != null) ''
+        ${lib.optionalString (cfg.watchdog.device != null) ''
           WatchdogDevice=${cfg.watchdog.device}
         ''}
-        ${optionalString (cfg.watchdog.runtimeTime != null) ''
+        ${lib.optionalString (cfg.watchdog.runtimeTime != null) ''
           RuntimeWatchdogSec=${cfg.watchdog.runtimeTime}
         ''}
-        ${optionalString (cfg.watchdog.rebootTime != null) ''
+        ${lib.optionalString (cfg.watchdog.rebootTime != null) ''
           RebootWatchdogSec=${cfg.watchdog.rebootTime}
         ''}
-        ${optionalString (cfg.watchdog.kexecTime != null) ''
+        ${lib.optionalString (cfg.watchdog.kexecTime != null) ''
           KExecWatchdogSec=${cfg.watchdog.kexecTime}
         ''}
 
@@ -604,14 +601,14 @@ in
       let
         withName = cfgToUnit: cfg: lib.nameValuePair cfg.name (cfgToUnit cfg);
       in
-         mapAttrs' (_: withName pathToUnit) cfg.paths
-      // mapAttrs' (_: withName serviceToUnit) cfg.services
-      // mapAttrs' (_: withName sliceToUnit) cfg.slices
-      // mapAttrs' (_: withName socketToUnit) cfg.sockets
-      // mapAttrs' (_: withName targetToUnit) cfg.targets
-      // mapAttrs' (_: withName timerToUnit) cfg.timers
-      // listToAttrs (map (withName mountToUnit) cfg.mounts)
-      // listToAttrs (map (withName automountToUnit) cfg.automounts);
+         lib.mapAttrs' (_: withName pathToUnit) cfg.paths
+      // lib.mapAttrs' (_: withName serviceToUnit) cfg.services
+      // lib.mapAttrs' (_: withName sliceToUnit) cfg.slices
+      // lib.mapAttrs' (_: withName socketToUnit) cfg.sockets
+      // lib.mapAttrs' (_: withName targetToUnit) cfg.targets
+      // lib.mapAttrs' (_: withName timerToUnit) cfg.timers
+      // lib.listToAttrs (map (withName mountToUnit) cfg.mounts)
+      // lib.listToAttrs (map (withName automountToUnit) cfg.automounts);
 
       # Environment of PID 1
       systemd.managerEnvironment = {
@@ -634,11 +631,11 @@ in
 
     # Generate timer units for all services that have a ‘startAt’ value.
     systemd.timers =
-      mapAttrs (name: service:
+      lib.mapAttrs (name: service:
         { wantedBy = [ "timers.target" ];
           timerConfig.OnCalendar = service.startAt;
         })
-        (filterAttrs (name: service: service.enable && service.startAt != []) cfg.services);
+        (lib.filterAttrs (name: service: service.enable && service.startAt != []) cfg.services);
 
     # Some overrides to upstream units.
     systemd.services."systemd-backlight@".restartIfChanged = false;
@@ -679,16 +676,16 @@ in
 
     # Increase numeric PID range (set directly instead of copying a one-line file from systemd)
     # https://github.com/systemd/systemd/pull/12226
-    boot.kernel.sysctl."kernel.pid_max" = mkIf pkgs.stdenv.is64bit (lib.mkDefault 4194304);
+    boot.kernel.sysctl."kernel.pid_max" = lib.mkIf pkgs.stdenv.is64bit (lib.mkDefault 4194304);
 
     services.logrotate.settings = {
-      "/var/log/btmp" = mapAttrs (_: mkDefault) {
+      "/var/log/btmp" = lib.mapAttrs (_: lib.mkDefault) {
         frequency = "monthly";
         rotate = 1;
         create = "0660 root ${config.users.groups.utmp.name}";
         minsize = "1M";
       };
-      "/var/log/wtmp" = mapAttrs (_: mkDefault) {
+      "/var/log/wtmp" = lib.mapAttrs (_: lib.mkDefault) {
         frequency = "monthly";
         rotate = 1;
         create = "0664 root ${config.users.groups.utmp.name}";
@@ -699,12 +696,12 @@ in
 
   # FIXME: Remove these eventually.
   imports =
-    [ (mkRenamedOptionModule [ "boot" "systemd" "sockets" ] [ "systemd" "sockets" ])
-      (mkRenamedOptionModule [ "boot" "systemd" "targets" ] [ "systemd" "targets" ])
-      (mkRenamedOptionModule [ "boot" "systemd" "services" ] [ "systemd" "services" ])
-      (mkRenamedOptionModule [ "jobs" ] [ "systemd" "services" ])
-      (mkRemovedOptionModule [ "systemd" "generator-packages" ] "Use systemd.packages instead.")
-      (mkRemovedOptionModule ["systemd" "enableUnifiedCgroupHierarchy"] ''
+    [ (lib.mkRenamedOptionModule [ "boot" "systemd" "sockets" ] [ "systemd" "sockets" ])
+      (lib.mkRenamedOptionModule [ "boot" "systemd" "targets" ] [ "systemd" "targets" ])
+      (lib.mkRenamedOptionModule [ "boot" "systemd" "services" ] [ "systemd" "services" ])
+      (lib.mkRenamedOptionModule [ "jobs" ] [ "systemd" "services" ])
+      (lib.mkRemovedOptionModule [ "systemd" "generator-packages" ] "Use systemd.packages instead.")
+      (lib.mkRemovedOptionModule ["systemd" "enableUnifiedCgroupHierarchy"] ''
           In 256 support for cgroup v1 ('legacy' and 'hybrid' hierarchies) is now considered obsolete and systemd by default will refuse to boot under it.
           To forcibly reenable cgroup v1 support, you can set boot.kernelParams = [ "systemd.unified_cgroup_hierachy=0" "SYSTEMD_CGROUP_ENABLE_LEGACY_FORCE=1" ].
           NixOS does not officially support this configuration and might cause your system to be unbootable in future versions. You are on your own.

@@ -1,7 +1,4 @@
 { config, lib, pkgs, ... }:
-
-with lib;
-
 let
   prl-tools = config.hardware.parallels.package;
 in
@@ -11,8 +8,8 @@ in
   options = {
     hardware.parallels = {
 
-      enable = mkOption {
-        type = types.bool;
+      enable = lib.mkOption {
+        type = lib.types.bool;
         default = false;
         description = ''
           This enables Parallels Tools for Linux guests, along with provided
@@ -20,8 +17,8 @@ in
         '';
       };
 
-      autoMountShares = mkOption {
-        type = types.bool;
+      autoMountShares = lib.mkOption {
+        type = lib.types.bool;
         default = true;
         description = ''
           Control prlfsmountd service. When this service is running, shares can not be manually
@@ -31,11 +28,11 @@ in
         '';
       };
 
-      package = mkOption {
-        type = types.nullOr types.package;
+      package = lib.mkOption {
+        type = lib.types.nullOr lib.types.package;
         default = config.boot.kernelPackages.prl-tools;
         defaultText = "config.boot.kernelPackages.prl-tools";
-        example = literalExpression "config.boot.kernelPackages.prl-tools";
+        example = lib.literalExpression "config.boot.kernelPackages.prl-tools";
         description = ''
           Defines which package to use for prl-tools. Override to change the version.
         '';
@@ -44,7 +41,7 @@ in
 
   };
 
-  config = mkIf config.hardware.parallels.enable {
+  config = lib.mkIf config.hardware.parallels.enable {
 
     services.udev.packages = [ prl-tools ];
 
@@ -53,7 +50,7 @@ in
     boot.extraModulePackages = [ prl-tools ];
 
     boot.kernelModules = [ "prl_fs" "prl_fs_freeze" "prl_tg" ]
-      ++ optional (pkgs.stdenv.hostPlatform.system == "aarch64-linux") "prl_notifier";
+      ++ lib.optional (pkgs.stdenv.hostPlatform.system == "aarch64-linux") "prl_notifier";
 
     services.timesyncd.enable = false;
 
@@ -68,7 +65,7 @@ in
       };
     };
 
-    systemd.services.prlfsmountd = mkIf config.hardware.parallels.autoMountShares {
+    systemd.services.prlfsmountd = lib.mkIf config.hardware.parallels.autoMountShares {
       description = "Parallels Guest File System Sharing Tool";
       wantedBy = [ "multi-user.target" ];
       path = [ prl-tools ];
