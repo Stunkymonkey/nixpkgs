@@ -16,21 +16,21 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "jumpy";
-  version = "0.8.0";
+  version = "0.12.2";
 
   src = fetchFromGitHub {
     owner = "fishfolk";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-ggePJH2kKJ17aOWRKUnLyolIdSzlc6Axf5Iw74iFfek=";
+    sha256 = "sha256-g/CpSycTCM1i6O7Mir+3huabvr4EXghDApquEUNny8c=";
   };
 
   cargoLock = {
     lockFile = ./Cargo.lock;
     outputHashes = {
-      "bevy_egui-0.21.0" = "sha256-hu55tZQppw1NajwqIsYsw6de0IAwQwgra3D9OFzSSLc=";
-      "bones_asset-0.3.0" = "sha256-1UeOXW6O/gMQBBUnHxRreJgmiUTPC5SJB+uLn9V8aa4=";
-      "kira-0.8.5" = "sha256-z4R5aIaoRQQprL6JsVrFI69rwTOsW5OH01+jORS+hBQ=";
+      "bones_asset-0.3.0" = "sha256-D/ejJ03a0SsBAfBskzw+v7GwHsFDoEMX5bKb6WDVSbY=";
+      "ggrs-0.10.1" = "sha256-fa+uA0t8Ubb66viQz0tiEz22ueS5ilHP13IOho+YeTk=";
+      "rapier2d-0.18.0" = "sha256-7J0j0H7vTHuJzO2aURdoCEQQRDQUvZUG5BfkfMOKpUc=";
     };
   };
 
@@ -78,7 +78,7 @@ rustPlatform.buildRustPackage rec {
   meta = with lib; {
     description = "Tactical 2D shooter played by up to 4 players online or on a shared screen";
     mainProgram = "jumpy";
-    homepage = "https://fishfight.org/";
+    homepage = "https://fishfolk.org/games/jumpy/";
     changelog = "https://github.com/fishfolk/jumpy/releases/tag/v${version}";
     license = with licenses; [ mit /* or */ asl20 ];
     maintainers = with maintainers; [ figsoda ];
