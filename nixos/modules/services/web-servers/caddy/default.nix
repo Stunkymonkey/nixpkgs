@@ -71,6 +71,15 @@ let
 
   adapterParam = optionalString (cfg.adapter != null) "--adapter ${cfg.adapter}";
   runOptions = ''--config ${configPath} ${adapterParam}'';
+
+  # 'validate' can not be used for validateion, due to log-location access: https://github.com/caddyserver/caddy/issues/6788
+  validConfig =
+    lib.fileContents (
+      pkgs.runCommand "validate-caddy-config" { } ''
+        ${lib.getExe cfg.package} adapt --config ${configFile} ${adapterParam} | ${lib.getExe pkgs.jq} empty
+        echo $? > $out
+      ''
+    ) == "0";
 in
 {
   imports = [
@@ -389,6 +398,10 @@ in
         {
           assertion = cfg.configFile == configFile -> cfg.adapter == "caddyfile" || cfg.adapter == null;
           message = "To specify an adapter other than 'caddyfile' please provide your own configuration via `services.caddy.configFile`";
+        }
+        {
+          assertion = validConfig;
+          message = "Caddy configuration is invalid";
         }
       ]
       ++ map (
