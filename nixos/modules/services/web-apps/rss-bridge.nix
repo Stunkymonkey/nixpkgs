@@ -8,9 +8,17 @@ with lib;
 let
   cfg = config.services.rss-bridge;
 
-  poolName = "rss-bridge";
+  webserver = config.services.${cfg.webserver};
 
-  cfgHalf = lib.mapAttrsRecursive (
+  formatCgiEnv = websrv: envName: envValue:
+    if websrv == "nginx" then
+      "fastcgi_param \"${envName}\" \"${envValue}\";"
+    else if websrv == "caddy" then
+      "env \"${envName}\" \"${envValue}\""
+    else
+      throw "Unsupported format: ${websrv}";
+
+  cgiEnvList = lib.mapAttrsRecursive (
     path: value:
     let
       envName = lib.toUpper ("RSSBRIDGE_" + lib.concatStringsSep "_" path);
@@ -22,9 +30,9 @@ let
         else
           toString value;
     in
-    if (value != null) then "fastcgi_param \"${envName}\" \"${envValue}\";" else null
+      if (value != null) then formatCgiEnv cfg.webserver envName envValue else null
   ) cfg.config;
-  cfgEnv = lib.concatStringsSep "\n" (lib.collect lib.isString cfgHalf);
+  cgiEnvLines = lib.concatStringsSep "\n" (lib.collect lib.isString cgiEnvList);
 in
 {
   imports = [
@@ -38,9 +46,12 @@ in
     services.rss-bridge = {
       enable = mkEnableOption "rss-bridge";
 
+      package = mkPackageOption pkgs "rss-bridge" { };
+
       user = mkOption {
         type = types.str;
-        default = "nginx";
+        default = webserver.user;
+        defaultText = lib.literalExpression ''config.services.''${config.services.rss-bridge.webserver}.user;'';
         description = ''
           User account under which both the service and the web-application run.
         '';
@@ -48,19 +59,33 @@ in
 
       group = mkOption {
         type = types.str;
-        default = "nginx";
+        default = webserver.group;
+        defaultText = lib.literalExpression ''config.services.''${config.services.rss-bridge.webserver}.group'';
         description = ''
           Group under which the web-application run.
         '';
       };
 
-      pool = mkOption {
-        type = types.str;
-        default = poolName;
+      webserver = mkOption {
+        type = types.enum [ "nginx" "caddy" "none"];
+        default = "nginx";
         description = ''
-          Name of existing phpfpm pool that is used to run web-application.
-          If not specified a pool will be created automatically with
-          default values.
+          Whether to use nginx or caddy for virtual host management.
+
+          Further nginx configuration can be done by adapting `services.nginx.virtualHosts.<name>`.
+          See [](#opt-services.nginx.virtualHosts) for further information.
+
+          Further caddy configuration can be done by adapting `services.caddy.virtualHosts.<name>`.
+          See [](#opt-services.caddy.virtualHosts) for further information.
+        '';
+      };
+
+      pool = mkOption {
+        type = types.nullOr types.str;
+        default = "rss-bridge";
+        description = ''
+          Name of phpfpm pool that is used to run web-application.
+          If `null` specified none will be created, otherwise automatically created with default values.
         '';
       };
 
@@ -124,12 +149,12 @@ in
   };
 
   config = mkIf cfg.enable {
-    services.phpfpm.pools = mkIf (cfg.pool == poolName) {
-      ${poolName} = {
+    services.phpfpm.pools = mkIf (cfg.pool != null) {
+      ${cfg.pool} = {
         user = cfg.user;
         settings = mapAttrs (name: mkDefault) {
           "listen.owner" = cfg.user;
-          "listen.group" = cfg.user;
+          "listen.group" = cfg.group;
           "listen.mode" = "0600";
           "pm" = "dynamic";
           "pm.max_children" = 75;
@@ -150,27 +175,36 @@ in
       };
     };
 
-    services.nginx = mkIf (cfg.virtualHost != null) {
+    services.nginx = mkIf (cfg.webserver == "nginx") {
       enable = true;
-      virtualHosts = {
-        ${cfg.virtualHost} = {
-          root = "${pkgs.rss-bridge}";
+      virtualHosts.${cfg.virtualHost} = {
+        root = "${cfg.package}";
 
-          locations."/" = {
-            tryFiles = "$uri /index.php$is_args$args";
-          };
+        locations."/" = {
+          tryFiles = "$uri /index.php$is_args$args";
+        };
 
-          locations."~ ^/index.php(/|$)" = {
-            extraConfig = ''
-              include ${config.services.nginx.package}/conf/fastcgi_params;
-              fastcgi_split_path_info ^(.+\.php)(/.+)$;
-              fastcgi_pass unix:${config.services.phpfpm.pools.${cfg.pool}.socket};
-              fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-              ${cfgEnv}
-            '';
-          };
+        locations."~ ^/index.php(/|$)" = {
+          extraConfig = ''
+            include ${config.services.nginx.package}/conf/fastcgi_params;
+            fastcgi_split_path_info ^(.+\.php)(/.+)$;
+            fastcgi_pass unix:${config.services.phpfpm.pools.${cfg.pool}.socket};
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            ${cgiEnvLines}
+          '';
         };
       };
+    };
+
+    services.caddy = mkIf (cfg.webserver == "caddy") {
+      enable = true;
+      virtualHosts.${cfg.virtualHost}.extraConfig = ''
+        root * ${cfg.package}
+        php_fastcgi unix/${config.services.phpfpm.pools.${cfg.pool}.socket} {
+          ${cgiEnvLines}
+        }
+        file_server
+      '';
     };
   };
 }
