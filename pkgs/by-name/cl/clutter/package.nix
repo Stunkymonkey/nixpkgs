@@ -27,9 +27,10 @@
 let
   pname = "clutter";
   version = "1.26.4";
-in
-stdenv.mkDerivation rec {
   name = "${pname}-${version}";
+in
+stdenv.mkDerivation {
+  inherit pname version;
 
   src = fetchurl {
     url = "mirror://gnome/sources/${pname}/${lib.versions.majorMinor version}/${name}.tar.xz";

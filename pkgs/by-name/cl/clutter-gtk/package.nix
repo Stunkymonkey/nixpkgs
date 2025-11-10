@@ -14,10 +14,11 @@
 let
   pname = "clutter-gtk";
   version = "1.8.4";
+  name = "${pname}-${version}";
 in
 
 stdenv.mkDerivation rec {
-  name = "${pname}-${version}";
+  inherit pname version;
 
   src = fetchurl {
     url = "mirror://gnome/sources/${pname}/${lib.versions.majorMinor version}/${name}.tar.xz";
