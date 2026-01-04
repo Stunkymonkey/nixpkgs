@@ -14,55 +14,75 @@ in
 
     package = lib.mkPackageOption pkgs "bentopdf" {
       extraDescription = ''
-        To use the "simple mode" variant of bentopdf, which removes all socials, marketing and explanatory texts, set this option to `pkgs.bentopdf.overrideAttrs { SIMPLE_MODE = true; }`.
+        To use the "normal mode" variant of bentopdf, which includes all socials, marketing and explanatory texts, set this option to `pkgs.bentopdf.overrideAttrs { env.SIMPLE_MODE = false; }`.
       '';
     };
 
-    host = lib.mkOption {
-      type = lib.types.str;
-      default = "0.0.0.0";
-      description = "The host to listen on.";
-    };
+    virtualHost = {
+      nginx.enable = lib.mkEnableOption "a virtualhost to serve bentopdf through nginx";
+      caddy.enable = lib.mkEnableOption "a virtualhost to serve bentopdf through caddy";
 
-    port = lib.mkOption {
-      type = lib.types.port;
-      default = 4152;
-      description = "The port nginx is listening on for bentopdf.";
-    };
+      domain = lib.mkOption {
+        description = ''
+          Domain to use for the virtual host.
 
-    openFirewall = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Open the port nginx is listening on for bentopdf.";
+          This can be used to change nginx options like
+          ```nix
+          services.nginx.virtualHosts."$\{config.services.bentopdf.virtualHost.domain}".listen = [ ... ]
+          ```
+          or
+          ```nix
+          services.nginx.virtualHosts."example.com".listen = [ ... ]
+          ```
+        '';
+        type = lib.types.str;
+      };
     };
   };
 
   config = lib.mkIf cfg.enable {
-    services.nginx.enable = true;
-
     # The nginx config is derived from: https://github.com/alam00000/bentopdf/blob/d9561d79b9eef5b0853dc8bfb3ef7cc9323a47c7/docs/self-hosting/nginx.md
-    services.nginx.virtualHosts."bentopdf" = {
-      listen = [
-        {
-          addr = cfg.host;
-          port = cfg.port;
-        }
-      ];
+    services.nginx = lib.mkIf cfg.virtualHost.nginx.enable {
+      enable = lib.mkDefault true;
+      virtualHosts."${cfg.virtualHost.domain}" = {
+        root = "${cfg.package}";
 
-      root = "${cfg.package}";
+        locations."/" = {
+          index = "index.html";
+          extraConfig = ''
+            try_files $uri $uri/ /index.html;
+          '';
+        };
 
-      locations."/".extraConfig = ''
-        try_files $uri $uri/ /index.html;
-        add_header X-Frame-Options "SAMEORIGIN" always;
-        add_header X-Content-Type-Options "nosniff" always;
-      '';
-
-      locations."~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$".extraConfig = ''
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-      '';
+        locations."~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$".extraConfig = ''
+          expires 1y;
+          add_header Cache-Control "public, immutable";
+        '';
+      };
     };
 
-    networking.firewall.allowedTCPPorts = lib.optional cfg.openFirewall cfg.port;
+    # adapted from the nginx config
+    services.caddy = lib.mkIf cfg.virtualHost.caddy.enable {
+      enable = lib.mkDefault true;
+      virtualHosts."${cfg.virtualHost.domain}".extraConfig = ''
+        root * ${cfg.package}
+        try_files {path} /index.html
+        file_server
+
+        @static {
+          path_regexp static \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$
+        }
+        handle @static {
+          header {
+            Cache-Control "public, immutable"
+          }
+          header Cache-Control max-age=31536000
+        }
+      '';
+    };
   };
+  meta.maintainers = with lib.maintainers; [
+    charludo
+    stunkymonkey
+  ];
 }
