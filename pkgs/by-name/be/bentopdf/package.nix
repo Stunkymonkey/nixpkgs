@@ -15,12 +15,13 @@ buildNpmPackage (finalAttrs: {
   };
   npmDepsHash = "sha256-UNNNYO7e7qdumI0/ka2ieFZzKURPl1V3981vHCPcVfY=";
 
-  npmBuildScript = "build";
   npmBuildFlags = [
     "--"
     "--mode"
     "production"
   ];
+
+  env.SIMPLE_MODE = "true";
 
   installPhase = ''
     runHook preInstall
@@ -33,10 +34,9 @@ buildNpmPackage (finalAttrs: {
 
   meta = {
     description = "Privacy-first PDF toolkit";
-    mainProgram = "bentopdf";
     homepage = "https://bentopdf.com";
     changelog = "https://github.com/alam00000/bentopdf/releases";
     license = lib.licenses.agpl3Only;
-    maintainers = with lib.maintainers; [ charludo ];
+    maintainers = with lib.maintainers; [ charludo stunkymonkey ];
   };
 })
