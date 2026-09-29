@@ -19,6 +19,11 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   cargoHash = "sha256-XoGtIHYCGXNuwnpDTU7NbZAs6rCO+69CAG89VCv9aAc=";
 
+  patches = [
+    # https://github.com/coastalwhite/lemurs/issues/256
+    ./set-seat-vars-before-open-session.patch
+  ];
+
   buildInputs = [
     linux-pam
   ];

@@ -1,0 +1,38 @@
+Set XDG_SEAT and XDG_VTNR before opening the PAM session, so pam_systemd
+registers the session on seat0. Without a seat, logind never marks the
+session as active on a seat, which e.g. disables Bluetooth in WirePlumber
+and device ACLs from udev.
+
+Minimal backport of the seat part of
+https://github.com/coastalwhite/lemurs/commit/7283f01e38, which does not
+apply to 0.4.0.
+See https://github.com/coastalwhite/lemurs/issues/256
+
+diff --git a/src/main.rs b/src/main.rs
+index 6f024d6..c1c382b 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -320,18 +320,21 @@ fn start_session(
+     set_session_params(&mut process_env, post_login_env);
+     remove_xdg(&mut process_env);
+ 
++    // Set the vars pam_systemd needs to register the session on the right
++    // seat/VT before calling open_session.
++    let tty = config.tty;
++    set_seat_vars(&mut process_env, tty);
++
+     let auth_session = try_auth(username, password, &config.pam_service)?;
+ 
+     if let Some(pre_environment_hook) = hooks.pre_environment {
+         pre_environment_hook();
+     }
+ 
+-    let tty = config.tty;
+     let uid = auth_session.uid;
+     let homedir = &auth_session.home_dir;
+     let shell = &auth_session.shell;
+ 
+-    set_seat_vars(&mut process_env, tty);
+     set_session_vars(&mut process_env, uid);
+     set_basic_variables(
+         &mut process_env,
