@@ -39,5 +39,11 @@
       machine.sleep(10)
       machine.succeed("pgrep -u alice river")
       machine.screenshot("postlogin")
+
+    with subtest("Session is registered on seat0"):
+      session = machine.succeed("loginctl list-sessions --no-legend | awk '$3 == \"alice\" && $6 == \"user\" {print $1}'").strip()
+      machine.succeed(f"loginctl show-session {session} -p Seat --value | grep -x seat0")
+      machine.succeed(f"loginctl show-session {session} -p Active --value | grep -x yes")
+      machine.succeed(f"loginctl show-seat seat0 -p ActiveSession --value | grep -x {session}")
   '';
 }
