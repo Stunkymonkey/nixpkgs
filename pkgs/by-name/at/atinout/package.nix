@@ -28,6 +28,13 @@ stdenv.mkDerivation {
     sha256 = "0bninv2bklz7ly140cxx8iyaqjlq809jjx6xqpimn34ghwsaxbpv";
   };
 
+  # strchr() on a const char * returns const char * in C23 (GCC 15+ default),
+  # tr_lf_cr() modifies its argument anyway
+  postPatch = ''
+    substituteInPlace atinout.c \
+      --replace-fail 'static bool tr_lf_cr(const char *s)' 'static bool tr_lf_cr(char *s)'
+  '';
+
   makeFlags = [ "CC=${stdenv.cc.targetPrefix}cc" ];
 
   installPhase = ''
