@@ -37,6 +37,12 @@ stdenv.mkDerivation (finalAttrs: {
     freeglut
   ]);
 
+  # vmath's lerp() clashes with std::lerp, which <math.h> exports globally since C++20 (GCC 16 default)
+  postPatch = ''
+    substituteInPlace Makefile \
+      --replace-fail 'CXXFLAGS = -pedantic' 'CXXFLAGS = -std=gnu++17 -pedantic'
+  '';
+
   makeFlags = [
     "PREFIX=$(out)"
     "CC=${stdenv.cc.targetPrefix}cc"
