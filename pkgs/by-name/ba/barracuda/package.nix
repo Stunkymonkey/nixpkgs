@@ -21,6 +21,9 @@ stdenv.mkDerivation (finalAttrs: {
 
   enableParallelBuilding = true;
 
+  # Upstream builds with -Werror; GCC 16 warns about a set-but-unused variable in src/fe/sema.c
+  env.NIX_CFLAGS_COMPILE = "-Wno-error=unused-but-set-variable";
+
   installPhase = ''
     runHook preInstall
 
