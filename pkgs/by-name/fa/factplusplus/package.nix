@@ -18,6 +18,9 @@ stdenv.mkDerivation (finalAttrs: {
 
   buildInputs = [ jdk ];
 
+  # `concept` is used as an identifier, but is a keyword since C++20 (GCC 16's default)
+  env.NIX_CFLAGS_COMPILE = "-std=gnu++17";
+
   configurePhase = ''
     runHook preConfigure
 
