@@ -40,6 +40,16 @@ python3.pkgs.buildPythonPackage {
     })
   ];
 
+  postPatch = ''
+    # pkg_resources was removed from setuptools
+    substituteInPlace bumblebee_status/modules/contrib/zpool.py \
+      --replace-fail "from pkg_resources import parse_version" "from packaging.version import parse as parse_version"
+
+    # versioneer needs git metadata, which the GitHub tarball lacks (yields 0+unknown)
+    substituteInPlace setup.py \
+      --replace-fail "version=versioneer.get_version()," 'version="${version}",'
+  '';
+
   build-system = with python3.pkgs; [
     setuptools
   ];
@@ -51,6 +61,7 @@ python3.pkgs.buildPythonPackage {
   nativeCheckInputs = with python3.pkgs; [
     freezegun
     netifaces
+    packaging
     psutil
     pytest
     pytest-mock
