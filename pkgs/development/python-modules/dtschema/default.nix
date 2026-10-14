@@ -33,6 +33,9 @@ buildPythonPackage (finalAttrs: {
     libfdt
   ];
 
+  # libfdt (dtc) is installed by meson without dist-info metadata
+  pythonRemoveDeps = [ "pylibfdt" ];
+
   pythonImportsCheck = [ "dtschema" ];
 
   nativeCheckInputs = [
