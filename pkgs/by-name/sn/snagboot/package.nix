@@ -27,6 +27,8 @@ python3Packages.buildPythonApplication (finalAttrs: {
 
   pythonRemoveDeps = [
     "swig"
+    # libfdt (dtc) is installed by meson without dist-info metadata
+    "pylibfdt"
   ];
 
   nativeBuildInputs = [
@@ -44,8 +46,6 @@ python3Packages.buildPythonApplication (finalAttrs: {
     packaging
     xmodem
   ];
-
-  pythonRelaxDeps = [ "pylibfdt" ];
 
   optional-dependencies = with python3Packages; {
     gui = [ kivy ];
