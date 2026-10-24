@@ -19,6 +19,13 @@ buildPythonPackage rec {
     hash = "sha256-fxAAkS7rekUMfJTTzJZzmvRa0P8B1avMCwmhddQP+ts=";
   };
 
+  # setup.py reads requirements.txt with pkg_resources, which setuptools 82 removed
+  postPatch = ''
+    substituteInPlace setup.py \
+      --replace-fail "import pkg_resources" "" \
+      --replace-fail "[str(r) for r in pkg_resources.parse_requirements(fp)]" "fp.read().split()"
+  '';
+
   nativeBuildInputs = [
     setuptools
     wheel
