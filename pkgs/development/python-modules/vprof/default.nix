@@ -5,6 +5,7 @@
   setuptools,
   wheel,
   psutil,
+  versionCheckHook,
 }:
 
 buildPythonPackage rec {
@@ -35,8 +36,8 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "vprof" ];
 
-  # The tests are not included in the Pypi sources
-  doCheck = false;
+  # The tests are not included in the Pypi sources, only check the version
+  nativeCheckInputs = [ versionCheckHook ];
 
   meta = {
     description = "Visual profiler for Python";
