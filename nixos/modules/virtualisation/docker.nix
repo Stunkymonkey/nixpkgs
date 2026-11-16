@@ -16,6 +16,7 @@ let
   proxy_env = config.networking.proxy.envVars;
   settingsFormat = pkgs.formats.json { };
   daemonSettingsFile = settingsFormat.generate "daemon.json" cfg.daemon.settings;
+  autoPrune = import ./docker-autoprune.nix { inherit lib utils; };
 in
 
 {
@@ -149,94 +150,7 @@ in
       '';
     };
 
-    autoPrune = {
-      enable = mkOption {
-        type = types.bool;
-        default = false;
-        description = ''
-          Whether to periodically prune Docker resources. If enabled, a
-          systemd timer will run `docker system prune -f`
-          as specified by the `dates` option.
-
-          NOTE: by default this does not prune volumes. Anonymous volumes
-          can be pruned by passing "--volumes" to [autoPrune.flags](#opt-virtualisation.docker.autoPrune.flags).
-
-          To prune all volumes (not just anonymous ones) [`autoPrune.allVolumes.enable`](#opt-virtualisation.docker.autoPrune.allVolumes.enable)
-          must be used.
-
-          See [upstream documentation](https://docs.docker.com/reference/cli/docker/system/prune/#description) for further information.
-        '';
-      };
-
-      flags = mkOption {
-        type = types.listOf types.str;
-        default = [ ];
-        example = [ "--all" ];
-        description = ''
-          Any additional flags passed to {command}`docker system prune`.
-        '';
-      };
-
-      dates = mkOption {
-        default = "weekly";
-        type = types.str;
-        description = ''
-          Specification (in the format described by
-          {manpage}`systemd.time(7)`) of the time at
-          which the prune will occur.
-        '';
-      };
-
-      randomizedDelaySec = mkOption {
-        default = "0";
-        type = types.singleLineStr;
-        example = "45min";
-        description = ''
-          Add a randomized delay before each auto prune.
-          The delay will be chosen between zero and this value.
-          This value must be a time span in the format specified by
-          {manpage}`systemd.time(7)`
-        '';
-      };
-
-      persistent = mkOption {
-        default = true;
-        type = types.bool;
-        example = false;
-        description = ''
-          Takes a boolean argument. If true, the time when the service
-          unit was last triggered is stored on disk. When the timer is
-          activated, the service unit is triggered immediately if it
-          would have been triggered at least once during the time when
-          the timer was inactive. Such triggering is nonetheless
-          subject to the delay imposed by RandomizedDelaySec=. This is
-          useful to catch up on missed runs of the service when the
-          system was powered down.
-        '';
-      };
-
-      allVolumes = {
-        enable = mkOption {
-          type = types.bool;
-          default = false;
-          description = ''
-            Whether to periodically prune all Docker volumes when auto pruning other docker resources
-            by running {command}`docker volume prune --force --all`
-
-            To prune only anonymous volumes, instead pass `--volumes` to `autoPrune.flags`
-          '';
-        };
-
-        flags = mkOption {
-          type = types.listOf types.str;
-          default = [ ];
-          example = [ "--filter=label=<label>" ];
-          description = ''
-            Any additional flags passed to {command}`docker volume prune --force --all`.
-          '';
-        };
-      };
-    };
+    autoPrune = autoPrune.mkOptions "virtualisation.docker";
 
     package = mkPackageOption pkgs "docker" { };
 
@@ -334,50 +248,11 @@ in
         };
       };
 
-      systemd.services.docker-prune = {
-        description = "Prune docker resources";
-
-        restartIfChanged = false;
-        unitConfig.X-StopOnRemoval = false;
-
-        serviceConfig = {
-          Type = "oneshot";
-          ExecStart = [
-            (utils.escapeSystemdExecArgs (
-              [
-                (lib.getExe cfg.package)
-                "system"
-                "prune"
-                "-f"
-              ]
-              ++ cfg.autoPrune.flags
-            ))
-          ]
-          ++ (optionals cfg.autoPrune.allVolumes.enable [
-            (utils.escapeSystemdExecArgs (
-              [
-                (lib.getExe cfg.package)
-                "volume"
-                "prune"
-                "--force"
-                "--all"
-              ]
-              ++ cfg.autoPrune.allVolumes.flags
-            ))
-          ]);
-        };
-
-        startAt = optional cfg.autoPrune.enable cfg.autoPrune.dates;
-        after = [ "docker.service" ];
-        requires = [ "docker.service" ];
+      systemd.services.docker-prune = autoPrune.mkService {
+        inherit (cfg) package autoPrune;
       };
 
-      systemd.timers.docker-prune = mkIf cfg.autoPrune.enable {
-        timerConfig = {
-          RandomizedDelaySec = cfg.autoPrune.randomizedDelaySec;
-          Persistent = cfg.autoPrune.persistent;
-        };
-      };
+      systemd.timers.docker-prune = mkIf cfg.autoPrune.enable (autoPrune.mkTimer cfg.autoPrune);
 
       assertions = [
         {
@@ -386,11 +261,8 @@ in
             -> config.hardware.graphics.enable32Bit or false;
           message = "Option enableNvidia on x86_64 requires 32-bit support libraries";
         }
-        {
-          assertion = cfg.autoPrune.allVolumes.enable -> cfg.autoPrune.enable;
-          message = "Option autoPrune.allVolumes.enable requires autoPrune.enable";
-        }
-      ];
+      ]
+      ++ autoPrune.mkAssertions "virtualisation.docker" cfg.autoPrune;
 
       virtualisation.docker.daemon.settings = {
         group = "docker";
